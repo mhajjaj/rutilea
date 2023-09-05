@@ -1,4 +1,6 @@
 import os
+from torchvision import transforms
+
 from super_gradients.training import Trainer, dataloaders, models
 from super_gradients.training.dataloaders.dataloaders import (
     coco_detection_yolo_format_train, coco_detection_yolo_format_val
@@ -8,6 +10,7 @@ from super_gradients.training.metrics import DetectionMetrics_050
 from super_gradients.training.models.detection_models.pp_yolo_e import (
     PPYoloEPostPredictionCallback
 )
+from torchvision import datasets  # Import the datasets module from torchvision
 
 class config:
     #trainer params
@@ -18,16 +21,22 @@ class config:
     DATA_DIR = 'Aisin-Gear-Inspection-Dataset'  # Replace with your actual dataset directory
 
     # Folders for each class
-    TRAIN_IMAGES_DIR = 'dataset1_train_NG_dakon/images'
-    TRAIN_LABELS_DIR = 'dataset1_train_NG_dakon/labels'
+    TRAIN_IMAGES_DIR_DAKON = 'dataset1_train_NG_dakon/images'
+    TRAIN_LABELS_DIR_DAKON = 'dataset1_train_NG_dakon/labels'
 
-    VAL_IMAGES_DIR = 'validation/images'
-    VAL_LABELS_DIR = 'validation/labels'
+    VALID_IMAGES_DIR_DAKON = 'dataset1_valid_NG_dakon/images'
+    VALID_LABELS_DIR_DAKON = 'dataset1_valid_NG_dakon/labels'
+
+    TRAIN_IMAGES_DIR_KIZU = 'dataset1_train_NG_kizu/images'
+    TRAIN_LABELS_DIR_KIZU = 'dataset1_train_NG_kizu/labels'
+
+    TRAIN_IMAGES_DIR_AKKON = 'dataset1_train_NG_akkon/images'
+    TRAIN_LABELS_DIR_AKKON = 'dataset1_train_NG_akkon/labels'
 
     # Folders for prediction
-    PREDICT_DAKON_DIR = 'dataset1_predict_NG_dakon'
-    PREDICT_KIZU_DIR = 'dataset1_predict_NG_kizu'
-    PREDICT_AKKON_DIR = 'dataset1_train_NG_akkon'
+    PREDICT_DAKON_DIR = 'dataset1_valid_NG_dakon/images'
+    PREDICT_KIZU_DIR = 'dataset1_valid_NG_kizu/labels'
+    PREDICT_AKKON_DIR = None
 
     CLASSES = ['dakon', 'kizu', 'akkon']  # Update with your actual classes
     NUM_CLASSES = len(CLASSES)
@@ -43,52 +52,50 @@ class config:
 if __name__ == '__main__':
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
 
-    train_data = coco_detection_yolo_format_train(
+    train_data_dakon = coco_detection_yolo_format_train(
         dataset_params={
             'data_dir': config.DATA_DIR,
-            'images_dir': config.TRAIN_IMAGES_DIR,
-            'labels_dir': config.TRAIN_LABELS_DIR,
+            'images_dir': config.TRAIN_IMAGES_DIR_DAKON,
+            'labels_dir': config.TRAIN_LABELS_DIR_DAKON,
             'classes': config.CLASSES
         },
         dataloader_params=config.DATALOADER_PARAMS
     )
 
-    val_data = coco_detection_yolo_format_val(
+    val_data_dakon = coco_detection_yolo_format_val(
         dataset_params={
             'data_dir': config.DATA_DIR,
-            'images_dir': config.VAL_IMAGES_DIR,
-            'labels_dir': config.VAL_LABELS_DIR,
+            'images_dir': config.VALID_IMAGES_DIR_DAKON,
+            'labels_dir': config.VALID_LABELS_DIR_DAKON,
             'classes': config.CLASSES
         },
         dataloader_params=config.DATALOADER_PARAMS
     )
 
-    # Use these variables for prediction
-    predict_dakon_data = dataloaders.ImageFolderDetection(
-        dataset_params={
-            'data_dir': os.path.join(config.DATA_DIR, config.PREDICT_DAKON_DIR),
-            'classes': config.CLASSES
-        },
-        dataloader_params=config.DATALOADER_PARAMS
+    # Define image transforms
+    image_transforms = transforms.Compose([
+        transforms.Resize((224, 224)),  # Resize the image to a specific size
+        transforms.ToTensor(),  # Convert the image to a PyTorch tensor
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalize image values
+    ])
+
+    # Use datasets.ImageFolder for prediction (no labels)
+    predict_dakon_data = datasets.ImageFolder(
+        root=os.path.join(config.DATA_DIR, "dataset1_valid_NG_dakon"),
+        transform=image_transforms,  # Use the defined transforms here
     )
 
-    predict_kizu_data = dataloaders.ImageFolderDetection(
-        dataset_params={
-            'data_dir': os.path.join(config.DATA_DIR, config.PREDICT_KIZU_DIR),
-            'classes': config.CLASSES
-        },
-        dataloader_params=config.DATALOADER_PARAMS
+    predict_kizu_data = datasets.ImageFolder(
+        root=os.path.join(config.DATA_DIR, config.PREDICT_KIZU_DIR),
+        transform=image_transforms,  # Use the defined transforms here
     )
 
-    predict_akkon_data = dataloaders.ImageFolderDetection(
-        dataset_params={
-            'data_dir': os.path.join(config.DATA_DIR, config.PREDICT_AKKON_DIR),
-            'classes': config.CLASSES
-        },
-        dataloader_params=config.DATALOADER_PARAMS
+    predict_akkon_data = datasets.ImageFolder(
+        root=os.path.join(config.DATA_DIR, config.PREDICT_AKKON_DIR),
+        transform=image_transforms,  # Use the defined transforms here
     )
 
-    train_data.dataset.plot()
+    train_data_dakon.dataset.plot()
 
     model = models.get(config.MODEL_NAME,
                        num_classes=config.NUM_CLASSES,
@@ -138,23 +145,5 @@ if __name__ == '__main__':
 
     trainer.train(model=model,
                 training_params=train_params,
-                train_loader=train_data,
-                valid_loader=val_data)
-
-    best_model = models.get(config.MODEL_NAME,
-                        num_classes=config.NUM_CLASSES,
-                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
-
-    trainer.test(model=best_model,
-            test_loader=test_loader,
-            test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-                                                   top_k_predictions=300,
-                                                   num_cls=config.NUM_CLASSES,
-                                                   normalize_targets=True,
-                                                   post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-                                                                                                          nms_top_k=1000,
-                                                                                                          max_predictions=300,
-                                                                                                          nms_threshold=0.7)
-                                                  ))
-                      
-    #best_model.predict( "path/to/your/asset",  conf=0.25).show()
+                train_loader=train_data_dakon,  # Use the appropriate dataset here
+                valid_loader=val_data_dakon)  # Use the appropriate dataset here
