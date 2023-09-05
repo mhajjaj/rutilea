@@ -149,9 +149,4 @@ if __name__ == '__main__':
                                                                                                           nms_threshold=0.7)
                                                   ))
     img_url = 'https://www.mynumi.net/media/catalog/product/cache/2/image/9df78eab33525d08d6e5fb8d27136e95/s/e/serietta_usa_2_1/www.mynumi.net-USASE5AD160-31.jpg'
-    best_model.predict(img_url, conf=0.25).show()            
-#    best_model.predict( "path/to/your/asset",  conf=0.25).show()
-
-# if __name__ == '__main__':    
-#     extractor = parallelTestModule.ParallelExtractor()
-#     extractor.runInParallel(numProcesses=2, numThreads=4)
+    best_model.predict(img_url, conf=0.25).show()

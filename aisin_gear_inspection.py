@@ -1,9 +1,4 @@
 import os
-
-import requests
-import torch
-from PIL import Image
-
 from super_gradients.training import Trainer, dataloaders, models
 from super_gradients.training.dataloaders.dataloaders import (
     coco_detection_yolo_format_train, coco_detection_yolo_format_val
@@ -16,36 +11,34 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
 
 class config:
     #trainer params
-    CHECKPOINT_DIR = 'aisin_gear_inspection/checkpoint' #specify the path you want to save checkpoints to
-    EXPERIMENT_NAME = 'AisinGearInspection' #specify the experiment name
+    CHECKPOINT_DIR = 'checkpoint/Aisin-Gear-Inspection-Dataset'
+    EXPERIMENT_NAME = 'Aisin-Gear-Inspection Experiment'
 
     #dataset params
-    DATA_DIR = '' #parent directory to where data lives
+    DATA_DIR = 'Aisin-Gear-Inspection-Dataset'  # Replace with your actual dataset directory
 
-    TRAIN_IMAGES_DIR = 'train/images' #child dir of DATA_DIR where train images are
-    TRAIN_LABELS_DIR = 'train/labels' #child dir of DATA_DIR where train labels are
+    # Folders for each class
+    TRAIN_IMAGES_DIR = 'dataset1_train_NG_dakon/images'
+    TRAIN_LABELS_DIR = 'dataset1_train_NG_dakon/labels'
 
-    VAL_IMAGES_DIR = 'valid/images' #child dir of DATA_DIR where validation images are
-    VAL_LABELS_DIR = 'valid/labels' #child dir of DATA_DIR where validation labels are
+    VAL_IMAGES_DIR = 'validation/images'
+    VAL_LABELS_DIR = 'validation/labels'
 
-    # if you have a test set
-    TEST_IMAGES_DIR = 'test/images' #child dir of DATA_DIR where test images are
-    TEST_LABELS_DIR = 'test/labels' #child dir of DATA_DIR where test labels are
+    # Folders for prediction
+    PREDICT_DAKON_DIR = 'dataset1_predict_NG_dakon'
+    PREDICT_KIZU_DIR = 'dataset1_predict_NG_kizu'
+    PREDICT_AKKON_DIR = 'dataset1_train_NG_akkon'
 
-    CLASSES = ['list', 'your', 'classnames', 'here'] #what class names do you have
-
+    CLASSES = ['dakon', 'kizu', 'akkon']  # Update with your actual classes
     NUM_CLASSES = len(CLASSES)
 
-    #dataloader params - you can add whatever PyTorch dataloader params you have
-    #could be different across train, val, and test
-    DATALOADER_PARAMS={
-    'batch_size':8,
-    'num_workers':2
+    DATALOADER_PARAMS = {
+        'batch_size': 8,
+        'num_workers': 2
     }
 
-    # model params
-    MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
-    PRETRAINED_WEIGHTS = 'coco' #only one option here: coco
+    MODEL_NAME = 'yolo_nas_l'
+    PRETRAINED_WEIGHTS = 'coco'
 
 if __name__ == '__main__':
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
@@ -70,11 +63,26 @@ if __name__ == '__main__':
         dataloader_params=config.DATALOADER_PARAMS
     )
 
-    test_data = coco_detection_yolo_format_val(
+    # Use these variables for prediction
+    predict_dakon_data = dataloaders.ImageFolderDetection(
         dataset_params={
-            'data_dir': config.DATA_DIR,
-            'images_dir': config.TEST_IMAGES_DIR,
-            'labels_dir': config.TEST_LABELS_DIR,
+            'data_dir': os.path.join(config.DATA_DIR, config.PREDICT_DAKON_DIR),
+            'classes': config.CLASSES
+        },
+        dataloader_params=config.DATALOADER_PARAMS
+    )
+
+    predict_kizu_data = dataloaders.ImageFolderDetection(
+        dataset_params={
+            'data_dir': os.path.join(config.DATA_DIR, config.PREDICT_KIZU_DIR),
+            'classes': config.CLASSES
+        },
+        dataloader_params=config.DATALOADER_PARAMS
+    )
+
+    predict_akkon_data = dataloaders.ImageFolderDetection(
+        dataset_params={
+            'data_dir': os.path.join(config.DATA_DIR, config.PREDICT_AKKON_DIR),
             'classes': config.CLASSES
         },
         dataloader_params=config.DATALOADER_PARAMS
@@ -96,7 +104,7 @@ if __name__ == '__main__':
         "initial_lr": 5e-4,
         "lr_mode": "cosine",
         "cosine_final_lr_ratio": 0.1,
-        "optimizer": "Adam",
+        "optimizer": "kizu",
         "optimizer_params": {"weight_decay": 0.0001},
         "zero_weight_decay_on_bias_and_bn": True,
         "ema": True,
@@ -148,5 +156,5 @@ if __name__ == '__main__':
                                                                                                           max_predictions=300,
                                                                                                           nms_threshold=0.7)
                                                   ))
-                        
-    best_model.predict( "path/to/your/asset",  conf=0.25).show()
+                      
+    #best_model.predict( "path/to/your/asset",  conf=0.25).show()
