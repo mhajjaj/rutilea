@@ -1,0 +1,8 @@
+names:
+- akkon
+- dakon
+- kizu
+nc: 3
+test: ../test/images
+train: Aisin-Gear-Inspection-Dataset/train/images
+val: Aisin-Gear-Inspection-Dataset/valid/images
