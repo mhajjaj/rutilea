@@ -1,12 +1,8 @@
 import os
-import sys
 
 import requests
 import torch
 from PIL import Image
-from tensorboardX import SummaryWriter  # Import TensorBoardX
-
-import torch.optim as optim
 
 from super_gradients.training import Trainer, dataloaders, models
 from super_gradients.training.dataloaders.dataloaders import (
@@ -52,11 +48,6 @@ class config:
     PRETRAINED_WEIGHTS = 'coco' #only one option here: coco
 
 if __name__ == '__main__':
-    # Create a TensorBoard SummaryWriter to log metrics
-    log_dir = os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'logs')
-    os.makedirs(log_dir, exist_ok=True)
-    writer = SummaryWriter(log_dir=log_dir)
-
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
 
     train_data = coco_detection_yolo_format_train(
@@ -98,7 +89,7 @@ if __name__ == '__main__':
 
     train_params = {
         # ENABLING SILENT MODE
-        "average_best_models": True,
+        "average_best_models":True,
         "warmup_mode": "linear_epoch_step",
         "warmup_initial_lr": 1e-6,
         "lr_warmup_epochs": 3,
@@ -110,7 +101,7 @@ if __name__ == '__main__':
         "zero_weight_decay_on_bias_and_bn": True,
         "ema": True,
         "ema_params": {"decay": 0.9, "decay_type": "threshold"},
-        "max_epochs": 1,  # Increase the number of epochs for training
+        "max_epochs": 30,
         "mixed_precision": True,
         "loss": PPYoloELoss(
             use_static_assigner=False,
@@ -136,75 +127,26 @@ if __name__ == '__main__':
         "metric_to_watch": 'mAP@0.50'
     }
 
-    global_step = 0  # Initialize global step
-    optimizer = optim.Adam(model.parameters(), lr=train_params["initial_lr"], weight_decay=train_params["optimizer_params"]["weight_decay"])
+    trainer.train(model=model,
+                training_params=train_params,
+                train_loader=train_data,
+                valid_loader=val_data)
 
-    for epoch in range(train_params["max_epochs"]):
-        # Training loop
-        for batch_idx, data in enumerate(train_data):
-            # The training code here
+    best_model = models.get(config.MODEL_NAME,
+                        num_classes=config.NUM_CLASSES,
+                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
 
-            trainer.train(model=model,
-                        training_params=train_params,
-                        train_loader=train_data,
-                        valid_loader=val_data)
-            
-            optimizer.zero_grad()
-
-            #print(f"-----------------")
-            #print(type(data))
-            
-            input_tensor = torch.stack(data, dim=0)
-            # data = data.to(device)  # Replace 'device' with your actual device (e.g., 'cuda' or 'cpu')
-            output = model(data)  # Replace with your model forward pass
-
-            desired_size = (8, 3, 640, 640)
-            processed_data = [torch.nn.functional.interpolate(tensor, size=desired_size[2:]) for tensor in data]
-
-            print(f"Tensor {batch_idx} size: {tensor.size()}")
-            #print(type(output))
-
-            #sys.exit()
-
-            loss = compute_loss(output, target)  # Replace with your loss computation
-            loss.backward()
-            optimizer.step()
-                                                  
-            # Log the loss and other metrics to TensorBoard
-            writer.add_scalar('Train/PPYoloELoss/loss', loss.item(), global_step)
-            writer.add_scalar('Train/PPYoloELoss/loss_cls', loss_cls.item(), global_step)
-            writer.add_scalar('Train/PPYoloELoss/loss_dfl', loss_dfl.item(), global_step)
-            writer.add_scalar('Train/PPYoloELoss/loss_iou', loss_iou.item(), global_step)
-            # Log GPU memory usage
-            writer.add_scalar('Train/GPU_Memory', torch.cuda.memory_allocated(0) / (1024 * 1024), global_step)
-
-            global_step += 1  # Increment the global step for each batch
-
-        # Validation loop
-        for batch_idx, data in enumerate(val_data):
-            # The validation code here
-            best_model = models.get(config.MODEL_NAME,
-                                    num_classes=config.NUM_CLASSES,
-                                    checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
-
-            trainer.test(model=best_model,
-                    test_loader=test_data,  # Update variable name here
-                    test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-                                                        top_k_predictions=300,
-                                                        num_cls=config.NUM_CLASSES,
-                                                        normalize_targets=True,
-                                                        post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-                                                                                                                nms_top_k=1000,
-                                                                                                                max_predictions=300,
-                                                                                                                nms_threshold=0.7)
-                                                        ))
-            pass
-
-        # Save the model checkpoint
-        checkpoint_path = os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, f'checkpoint_epoch_{epoch}.pth')
-        torch.save(model.state_dict(), checkpoint_path)
-
-    writer.close()  # Close the TensorBoard SummaryWriter when done
+    trainer.test(model=best_model,
+            test_loader=test_data,  # Update variable name here
+            test_metrics_list=DetectionMetrics_050(score_thres=0.1,
+                                                   top_k_predictions=300,
+                                                   num_cls=config.NUM_CLASSES,
+                                                   normalize_targets=True,
+                                                   post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
+                                                                                                          nms_top_k=1000,
+                                                                                                          max_predictions=300,
+                                                                                                          nms_threshold=0.7)
+                                                  ))
                                                   
     img_path = 'GearInspection-Dataset/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'
     best_model.predict(img_path, conf=0.25).show()
