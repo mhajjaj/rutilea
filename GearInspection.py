@@ -3,6 +3,7 @@ import os
 import requests
 import torch
 from PIL import Image
+from tensorboardX import SummaryWriter  # Import TensorBoardX
 
 from super_gradients.training import Trainer, dataloaders, models
 from super_gradients.training.dataloaders.dataloaders import (
@@ -44,10 +45,15 @@ class config:
     }
 
     # model params
-    MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
+    MODEL_NAME = 'yolo_nas_m' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
     PRETRAINED_WEIGHTS = 'coco' #only one option here: coco
 
 if __name__ == '__main__':
+    # Create a TensorBoard SummaryWriter to log metrics
+    log_dir = os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir=log_dir)
+
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
 
     train_data = coco_detection_yolo_format_train(
@@ -148,7 +154,7 @@ if __name__ == '__main__':
                                                                                                           nms_threshold=0.7)
                                                   ))
                                                   
-    img_path = 'GearInspection-Dataset/predict/year=2023-month=04-day=27-00_16_34-NG-2_10.png'
+    img_path = 'GearInspection-Dataset/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'
     best_model.predict(img_path, conf=0.25).show()
     best_model.predict(img_path, conf=0.50).show()
     best_model.predict(img_path, conf=0.75).show()
