@@ -32,7 +32,7 @@ class config:
     TEST_IMAGES_DIR = 'test/images' #child dir of DATA_DIR where test images are
     TEST_LABELS_DIR = 'test/labels' #child dir of DATA_DIR where test labels are
 
-    CLASSES = ['akkon', 'dakon', 'kizu'] #what class names do you have
+    CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore'] #what class names do you have
 
     NUM_CLASSES = len(CLASSES)
 
@@ -44,7 +44,7 @@ class config:
     }
 
     # model params
-    MODEL_NAME = 'yolo_nas_m' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
+    MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
     PRETRAINED_WEIGHTS = 'coco' #only one option here: coco
 
 if __name__ == '__main__':
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         "zero_weight_decay_on_bias_and_bn": True,
         "ema": True,
         "ema_params": {"decay": 0.9, "decay_type": "threshold"},
-        "max_epochs": 30,
+        "max_epochs": 1,
         "mixed_precision": True,
         "loss": PPYoloELoss(
             use_static_assigner=False,

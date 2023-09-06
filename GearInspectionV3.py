@@ -44,7 +44,7 @@ class config:
     }
 
     # model params
-    MODEL_NAME = 'yolo_nas_m' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
+    MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
     PRETRAINED_WEIGHTS = 'coco' #only one option here: coco
 
 if __name__ == '__main__':
