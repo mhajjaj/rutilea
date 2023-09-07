@@ -1,3 +1,4 @@
+# Developed by m.hajjaj at rutilea
 import os
 
 import requests
@@ -17,27 +18,25 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
 class config:
     #trainer params
     CHECKPOINT_DIR = 'checkpoint/GearInspection-Dataset' #specify the path you want to save checkpoints to
-    EXPERIMENT_NAME = 'Aisin-Gear-Inspection-Experiment' #specify the experiment name
+    EXPERIMENT_NAME = 'Aisin-Gear-Inspection-Experiment' 
 
     #dataset params
-    DATA_DIR = 'GearInspection-Dataset' #parent directory to where data lives
+    DATA_DIR = 'GearInspection-Dataset' 
 
-    TRAIN_IMAGES_DIR = 'train/images' #child dir of DATA_DIR where train images are
-    TRAIN_LABELS_DIR = 'train/labels' #child dir of DATA_DIR where train labels are
+    TRAIN_IMAGES_DIR = 'train/images' 
+    TRAIN_LABELS_DIR = 'train/labels' 
 
-    VAL_IMAGES_DIR = 'valid/images' #child dir of DATA_DIR where validation images are
-    VAL_LABELS_DIR = 'valid/labels' #child dir of DATA_DIR where validation labels are
+    VAL_IMAGES_DIR = 'valid/images'
+    VAL_LABELS_DIR = 'valid/labels' 
 
     # if you have a test set
-    TEST_IMAGES_DIR = 'test/images' #child dir of DATA_DIR where test images are
-    TEST_LABELS_DIR = 'test/labels' #child dir of DATA_DIR where test labels are
+    TEST_IMAGES_DIR = 'test/images' 
+    TEST_LABELS_DIR = 'test/labels' 
 
     CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore'] #what class names do you have
 
     NUM_CLASSES = len(CLASSES)
 
-    #dataloader params - you can add whatever PyTorch dataloader params you have
-    #could be different across train, val, and test
     DATALOADER_PARAMS={
     'batch_size':8,
     'num_workers':2
@@ -45,7 +44,7 @@ class config:
 
     # model params
     MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
-    PRETRAINED_WEIGHTS = 'coco' #only one option here: coco
+    PRETRAINED_WEIGHTS = 'coco' 
 
 if __name__ == '__main__':
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
@@ -88,7 +87,6 @@ if __name__ == '__main__':
                        )
 
     train_params = {
-        # ENABLING SILENT MODE
         "average_best_models":True,
         "warmup_mode": "linear_epoch_step",
         "warmup_initial_lr": 1e-6,
@@ -101,11 +99,10 @@ if __name__ == '__main__':
         "zero_weight_decay_on_bias_and_bn": True,
         "ema": True,
         "ema_params": {"decay": 0.9, "decay_type": "threshold"},
-        "max_epochs": 1,
+        "max_epochs": 1, # Change No of epochs you want, more is better until a level
         "mixed_precision": True,
         "loss": PPYoloELoss(
             use_static_assigner=False,
-            # NOTE: num_classes needs to be defined here
             num_classes=config.NUM_CLASSES,
             reg_max=16
         ),
@@ -113,7 +110,6 @@ if __name__ == '__main__':
             DetectionMetrics_050(
                 score_thres=0.1,
                 top_k_predictions=300,
-                # NOTE: num_classes needs to be defined here
                 num_cls=config.NUM_CLASSES,
                 normalize_targets=True,
                 post_prediction_callback=PPYoloEPostPredictionCallback(
@@ -137,7 +133,7 @@ if __name__ == '__main__':
                         checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
 
     trainer.test(model=best_model,
-            test_loader=test_data,  # Update variable name here
+            test_loader=test_data, 
             test_metrics_list=DetectionMetrics_050(score_thres=0.1,
                                                    top_k_predictions=300,
                                                    num_cls=config.NUM_CLASSES,
@@ -147,7 +143,8 @@ if __name__ == '__main__':
                                                                                                           max_predictions=300,
                                                                                                           nms_threshold=0.7)
                                                   ))
-                                                  
+    
+    # For predication, please change conf.
     img_path = 'GearInspection-Dataset/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'
     best_model.predict(img_path, conf=0.25).show()
     best_model.predict(img_path, conf=0.50).show()
