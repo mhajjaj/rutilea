@@ -4,6 +4,7 @@ import os
 import requests
 import torch
 from PIL import Image
+from tensorboardX import SummaryWriter
 
 from super_gradients.training import Trainer, dataloaders, models
 from super_gradients.training.dataloaders.dataloaders import (
@@ -17,21 +18,24 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
 
 class config:
     #trainer params
-    CHECKPOINT_DIR = 'checkpoint/GearInspection-Dataset' #specify the path you want to save checkpoints to
-    EXPERIMENT_NAME = 'Aisin-Gear-Inspection-Experiment' 
+    HOME = os.getcwd()
 
-    #dataset params
-    DATA_DIR = 'GearInspection-Dataset' 
+    CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset' #specify the path you want to save checkpoints to
+    EXPERIMENT_NAME = 'AGIExperiment' 
 
-    TRAIN_IMAGES_DIR = 'train/images' 
-    TRAIN_LABELS_DIR = 'train/labels' 
+    ##dataset params
+    DATA_DIR = f'{HOME}\GearInspection-Dataset' 
+    LOGS = f'{CHECKPOINT_DIR}\AGILogs'
 
-    VAL_IMAGES_DIR = 'valid/images'
-    VAL_LABELS_DIR = 'valid/labels' 
+    TRAIN_IMAGES_DIR = 'train\images' 
+    TRAIN_LABELS_DIR = 'train\labels' 
+
+    VAL_IMAGES_DIR = 'valid\images'
+    VAL_LABELS_DIR = 'valid\labels' 
 
     # if you have a test set
-    TEST_IMAGES_DIR = 'test/images' 
-    TEST_LABELS_DIR = 'test/labels' 
+    TEST_IMAGES_DIR = 'test\images' 
+    TEST_LABELS_DIR = 'test\labels' 
 
     CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore'] #what class names do you have
 
@@ -48,6 +52,9 @@ class config:
 
 if __name__ == '__main__':
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
+
+    os.makedirs(config.LOGS, exist_ok=True)
+    writer = SummaryWriter(config.LOGS)
 
     train_data = coco_detection_yolo_format_train(
         dataset_params={
@@ -99,7 +106,7 @@ if __name__ == '__main__':
         "zero_weight_decay_on_bias_and_bn": True,
         "ema": True,
         "ema_params": {"decay": 0.9, "decay_type": "threshold"},
-        "max_epochs": 1, # Change No of epochs you want, more is better until a level
+        "max_epochs": 500, # Change No of epochs you want, more is better until a level
         "mixed_precision": True,
         "loss": PPYoloELoss(
             use_static_assigner=False,
@@ -143,6 +150,10 @@ if __name__ == '__main__':
                                                                                                           max_predictions=300,
                                                                                                           nms_threshold=0.7)
                                                   ))
+    
+    writer.close()
+    PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
+    torch.save(model.state_dict(), PATH)
     
     # For predication, please change conf.
     img_path = 'GearInspection-Dataset/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'

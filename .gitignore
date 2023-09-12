@@ -7,5 +7,12 @@ runs
 logs
 checkpoint/*
 checkpoints/*
+checkpoint_old/*
 AGIExperiment/*
 AGIExperiment2/*
+hit-uav
+hituav-a-highaltitude-infrared-thermal-dataset.zip
+GroundingDINO
+weights
+data
+aisin_data_v2
