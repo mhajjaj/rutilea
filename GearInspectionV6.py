@@ -6,6 +6,9 @@ from tensorboardX import SummaryWriter
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import confusion_matrix
+import seaborn as sn
+import pandas as pd
 
 import requests
 import torch
@@ -45,9 +48,10 @@ class config:
 
     # if you have a test set
     TEST_IMAGES_DIR = 'test\images' 
-    TEST_LABELS_DIR = 'test\labels' 
+    TEST_LABELS_DIR = 'test\labels'
 
-    CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore'] #what class names do you have
+    #what class names do you have
+    CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore'] 
 
     NUM_CLASSES = len(CLASSES)
 
@@ -105,6 +109,45 @@ class Net(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
+net = Net()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+def createConfusionMatrix(loader):
+    y_pred = []
+    y_true = []
+
+    # iterate over test data
+    for inputs, labels in testloader:
+            output = net(inputs) # Feed Network
+
+            output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
+            y_pred.extend(output) # Save Prediction
+            
+            labels = labels.data.cpu().numpy()
+            y_true.extend(labels) # Save Truth
+
+    # constant for classes -- config.CLASSES
+    classes = config.CLASSES
+    
+    # # Build confusion matrix
+    # cf_matrix = confusion_matrix(y_true, y_pred)
+    # df_cm = pd.DataFrame(cf_matrix / np.sum(cf_matrix, axis=1)[:, None], 
+    #                     index = [i for i in classes],
+    #                     columns = [i for i in classes])
+                        
+    # plt.figure(figsize = (12,7))
+    # sn.heatmap(df_cm, annot=True)
+    # plt.savefig('output.png')
+
+    # Build confusion matrix
+    cf_matrix = confusion_matrix(y_true, y_pred, labels=np.arange(len(classes)))
+    df_cm = pd.DataFrame(cf_matrix / np.sum(cf_matrix, axis=1)[:, None], index=[i for i in classes],
+                         columns=[i for i in classes])
+    # Create Heatmap
+    plt.figure(figsize=(12, 7))
+    return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
+    #sn.heatmap(df_cm, annot=True).get_figure()
 
 if __name__ == '__main__':
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
@@ -186,6 +229,47 @@ if __name__ == '__main__':
         "metric_to_watch": 'mAP@0.50'
     }
 
+    running_loss = config.RUNNING_LOSS
+    accuracy = config.ACCURACY
+    epochs = config.EPOCHS
+    batch_size = config.DATALOADER_PARAMS['batch_size']
+
+    for epoch in range(epochs):  # loop over the dataset multiple times
+        print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
+        for i, data in enumerate(trainloader, 0):
+            inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+            optimizer.zero_grad() # zero the parameter gradients
+            
+            outputs = net(inputs) # forward
+            loss = criterion(outputs, labels) # calculate loss
+            loss.backward() # backward loss
+            optimizer.step() # optimize gradients
+
+            running_loss += loss.item() # save loss
+            _, preds = torch.max(outputs, 1) # save prediction
+            accuracy += torch.sum(preds == labels.data) # save accuracy
+            
+            if i % 1000 == 999:    # every 1000 mini-batches...           
+                steps = epoch * len(trainloader) + i # calculate steps 
+                batch = i*batch_size # calculate batch 
+                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
+                
+                # Save accuracy and loss to Tensorboard
+                writer.add_scalar('Training loss by steps', running_loss / batch, steps)
+                writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
+                
+                
+        print("Accuracy: {}/{} ({:.3} %) Loss: {:.3}".format(accuracy, len(trainloader), 100. * accuracy / len(trainloader.dataset), running_loss / len(trainloader.dataset)))
+        
+        # Save confusion matrix to Tensorboard
+        writer.add_figure("Confusion matrix", createConfusionMatrix(trainloader), epoch)
+        
+        running_loss = 0.0
+        accuracy = 0
+    
+    plt.savefig('output_gear.png')
+    print('Finished Training')
+
     trainer.train(model=model,
                 training_params=train_params,
                 train_loader=train_data,
@@ -198,15 +282,15 @@ if __name__ == '__main__':
     trainer.test(model=best_model,
             test_loader=test_data, 
             test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-                                                   top_k_predictions=300,
-                                                   num_cls=config.NUM_CLASSES,
-                                                   normalize_targets=True,
-                                                   post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-                                                                                                          nms_top_k=1000,
-                                                                                                          max_predictions=300,
-                                                                                                          nms_threshold=0.7)
-                                                  ))
-    
+                                                top_k_predictions=300,
+                                                num_cls=config.NUM_CLASSES,
+                                                normalize_targets=True,
+                                                post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
+                                                                                                        nms_top_k=1000,
+                                                                                                        max_predictions=300,
+                                                                                                        nms_threshold=0.7)
+                                                ))
+
     writer.close()
     PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
     torch.save(model.state_dict(), PATH)
