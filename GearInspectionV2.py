@@ -33,7 +33,6 @@ class config:
     VAL_IMAGES_DIR = 'valid\images'
     VAL_LABELS_DIR = 'valid\labels' 
 
-    # if you have a test set
     TEST_IMAGES_DIR = 'test\images' 
     TEST_LABELS_DIR = 'test\labels' 
 
@@ -106,7 +105,7 @@ if __name__ == '__main__':
         "zero_weight_decay_on_bias_and_bn": True,
         "ema": True,
         "ema_params": {"decay": 0.9, "decay_type": "threshold"},
-        "max_epochs": 500, # Change No of epochs you want, more is better until a level
+        "max_epochs": 1, # Change No of epochs you want, more is better until a level
         "mixed_precision": True,
         "loss": PPYoloELoss(
             use_static_assigner=False,

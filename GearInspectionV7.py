@@ -1,6 +1,7 @@
 # Developed by m.hajjaj at rutilea
 import os
 import sys
+from PIL import Image
 
 from tensorboardX import SummaryWriter
 
@@ -42,7 +43,7 @@ class config:
     DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
     LOGS = f'{CHECKPOINT_DIR}\AGILogs'
 
-    CATEGORY = 'CategoryNG\ClassAll'
+    # CATEGORY = 'CategoryNG\ClassAll'
 
     TRAIN_IMAGES_DIR = 'train\images' 
     TRAIN_LABELS_DIR = 'train\labels' 
@@ -50,7 +51,6 @@ class config:
     VAL_IMAGES_DIR = 'valid\images'
     VAL_LABELS_DIR = 'valid\labels' 
 
-    # if you have a test set
     TEST_IMAGES_DIR = 'test\images' 
     TEST_LABELS_DIR = 'test\labels'
 
@@ -72,20 +72,82 @@ class config:
     MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
     PRETRAINED_WEIGHTS = 'coco' 
 
+import torch
+from torch.utils.data import Dataset
+from torchvision.transforms import ToTensor
+
+class CustomDataset(Dataset):
+    def __init__(self, root_dir, train=True, transform=None):
+        """
+        Args:
+            root_dir (str): The root directory of the dataset.
+            train (bool): Whether to load the training set (True) or testing set (False).
+            transform (callable, optional): A function/transform to apply to the data.
+        """
+        self.root_dir = root_dir
+        self.train = train
+        self.transform = transform
+
+        if self.train:
+            self.images_dir = os.path.join(root_dir, config.TRAIN_IMAGES_DIR)
+            self.labels_dir = os.path.join(root_dir, config.TRAIN_LABELS_DIR)
+        else:
+            self.images_dir = os.path.join(root_dir, config.VAL_IMAGES_DIR if self.train else config.TEST_IMAGES_DIR)
+            self.labels_dir = os.path.join(root_dir, config.VAL_LABELS_DIR if self.train else config.TEST_LABELS_DIR)
+
+        self.image_files = os.listdir(self.images_dir)
+        self.label_files = os.listdir(self.labels_dir)
+
+    def __len__(self):
+        return len(self.image_files)  # Return the number of samples in the dataset.
+
+    def __getitem__(self, idx):
+        image_name = self.image_files[idx]
+        label_name = self.label_files[idx]
+
+        image_path = os.path.join(self.images_dir, image_name)
+        label_path = os.path.join(self.labels_dir, label_name)
+
+        image = Image.open(image_path)
+        # Load the label from the text file
+        with open(label_path, 'r') as label_file:
+            label = label_file.read()
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, label
+
+
 # transforms
 transform = transforms.Compose(
     [transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))])
 
-# datasets
-trainset = torchvision.datasets.FashionMNIST(config.CHECKPOINT_DIR,
-    download=True,
+# Load your custom training dataset
+trainset = CustomDataset(
+    root_dir=config.DATA_DIR,
     train=True,
-    transform=transform)
-testset = torchvision.datasets.FashionMNIST(config.CHECKPOINT_DIR,
-    download=True,
+    transform=transform
+)
+
+# Load your custom testing dataset
+testset = CustomDataset(
+    root_dir=config.DATA_DIR,
     train=False,
-    transform=transform)
+    transform=transform
+)
+
+# datasets
+# trainset = config.CHECKPOINT_DIR
+# # trainset = torchvision.datasets.FashionMNIST(config.CHECKPOINT_DIR,
+# #     download=True,
+# #     train=True,
+# #     transform=transform)
+# testset = torchvision.datasets.FashionMNIST(config.CHECKPOINT_DIR,
+#     download=True,
+#     train=False,
+#     transform=transform)
 
 # dataloaders
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
@@ -101,14 +163,14 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 4 * 4, 120)
+        self.fc1 = nn.Linear(16 * 227 * 347, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 4 * 4)
+        x = x.view(-1, 16 * 227 * 347)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
@@ -281,7 +343,7 @@ if __name__ == '__main__':
         "lr_warmup_epochs": 3,
         "initial_lr": 5e-4,
         "lr_mode": "cosine",
-        "cosine_final_lr_ratio": 0.1,
+        "cosine_final_lr_ratio": 0.001,
         "optimizer": "Adam",
         "optimizer_params": {"weight_decay": 0.0001},
         "zero_weight_decay_on_bias_and_bn": True,
@@ -311,93 +373,69 @@ if __name__ == '__main__':
         "metric_to_watch": 'mAP@0.50'
     }
 
-    if trainer.train(model=model,
-                    training_params=train_params,
-                    train_loader=train_data,
-                    valid_loader=val_data):
-        
-        running_loss = config.RUNNING_LOSS
-        accuracy = config.ACCURACY
-        epochs = config.EPOCHS
-        batch_size = config.DATALOADER_PARAMS['batch_size'] 
-        
-        for epoch in range(epochs):  # loop over the dataset multiple times
-            print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
-            for i, data in enumerate(trainloader, 0):
-                inputs, labels = data # get the inputs; data is a list of [inputs, labels]
-                optimizer.zero_grad() # zero the parameter gradients
+    trainer.train(model=model,
+                training_params=train_params,
+                train_loader=train_data,
+                valid_loader=val_data)
+    
+    running_loss = config.RUNNING_LOSS
+    accuracy = config.ACCURACY
+    epochs = config.EPOCHS
+    batch_size = config.DATALOADER_PARAMS['batch_size']
+
+########################### check later
+    for epoch in range(epochs):  # loop over the dataset multiple times
+        print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
+        for i, data in enumerate(trainloader, 0):
+            inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+            optimizer.zero_grad() # zero the parameter gradients
+            
+            outputs = net(inputs) # forward
+            labels = labels.squeeze()  # Ensure labels are properly formatted (e.g., remove any unnecessary dimensions)
+            loss = criterion(outputs, labels) # calculate loss
+            loss.backward() # backward loss
+            optimizer.step() # optimize gradients
+
+            running_loss += loss.item() # save loss
+            _, preds = torch.max(outputs, 1) # save prediction
+            accuracy += torch.sum(preds == labels.data) # save accuracy
+            
+            if i % 1000 == 999:    # every 1000 mini-batches...           
+                steps = epoch * len(trainloader) + i # calculate steps 
+                batch = i*batch_size # calculate batch 
+                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
                 
-                outputs = net(inputs) # forward
-                loss = criterion(outputs, labels) # calculate loss
-                loss.backward() # backward loss
-                optimizer.step() # optimize gradients
+                # Save accuracy and loss to Tensorboard
+                writer.add_scalar('Training loss by steps', running_loss / batch, steps)
+                writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
 
-                running_loss += loss.item() # save loss
-                _, preds = torch.max(outputs, 1) # save prediction
-                accuracy += torch.sum(preds == labels.data) # save accuracy
-                
-                if i % 1000 == 999:    # every 1000 mini-batches...           
-                    steps = epoch * len(trainloader) + i # calculate steps 
-                    batch = i*batch_size # calculate batch 
-                    print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
-                    
-                    # Save accuracy and loss to Tensorboard
-                    writer.add_scalar('Training loss by steps', running_loss / batch, steps)
-                    writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
+    best_model = models.get(config.MODEL_NAME,
+                        num_classes=config.NUM_CLASSES,
+                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
 
-        # trainer.train(model=model,
-        #             training_params=train_params,
-        #             train_loader=train_data,
-        #             valid_loader=val_data)
-
-        best_model = models.get(config.MODEL_NAME,
-                            num_classes=config.NUM_CLASSES,
-                            checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
-
-        trainer.test(model=best_model,
-                test_loader=test_data, 
-                test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-                                                    top_k_predictions=300,
-                                                    num_cls=config.NUM_CLASSES,
-                                                    normalize_targets=True,
-                                                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-                                                                                                            nms_top_k=1000,
-                                                                                                            max_predictions=300,
-                                                                                                            nms_threshold=0.7)
-                                                    ))
+    trainer.test(model=best_model,
+            test_loader=test_data, 
+            test_metrics_list=DetectionMetrics_050(score_thres=0.1,
+                                                top_k_predictions=300,
+                                                num_cls=config.NUM_CLASSES,
+                                                normalize_targets=True,
+                                                post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
+                                                                                                        nms_top_k=1000,
+                                                                                                        max_predictions=300,
+                                                                                                        nms_threshold=0.7)
+                                                ))
                 
                 
-        print("Accuracy: {}/{} ({:.3} %) Loss: {:.3}".format(accuracy, len(trainloader), 100. * accuracy / len(trainloader.dataset), running_loss / len(trainloader.dataset)))
+    print("Accuracy: {}/{} ({:.3} %) Loss: {:.3}".format(accuracy, len(trainloader), 100. * accuracy / len(trainloader.dataset), running_loss / len(trainloader.dataset)))
         
         # Save confusion matrix to Tensorboard
-        writer.add_figure("Confusion matrix", createConfusionMatrix(trainloader), epoch)
-        
-        running_loss = 0.0
-        accuracy = 0
+    # writer.add_figure("Confusion matrix", createConfusionMatrix(trainloader), epoch)
     
-    writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), config.EPOCHS)    
-    print('Finished Training')
-
-    # trainer.train(model=model,
-    #             training_params=train_params,
-    #             train_loader=train_data,
-    #             valid_loader=val_data)
-
-    # best_model = models.get(config.MODEL_NAME,
-    #                     num_classes=config.NUM_CLASSES,
-    #                     checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
-
-    # trainer.test(model=best_model,
-    #         test_loader=test_data, 
-    #         test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-    #                                             top_k_predictions=300,
-    #                                             num_cls=config.NUM_CLASSES,
-    #                                             normalize_targets=True,
-    #                                             post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-    #                                                                                                     nms_top_k=1000,
-    #                                                                                                     max_predictions=300,
-    #                                                                                                     nms_threshold=0.7)
-    #                                             ))
+    running_loss = 0.0
+    accuracy = 0
+    
+    # writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epochs)
+    print("Finished Training")
 
     writer.close()
     PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
