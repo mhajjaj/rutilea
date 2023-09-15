@@ -384,27 +384,31 @@ if __name__ == '__main__':
     batch_size = config.DATALOADER_PARAMS['batch_size']
 
 ########################### check later
-    for epoch in range(epochs):  # loop over the dataset multiple times
+    for epoch in range(epochs):
         print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
         for i, data in enumerate(trainloader, 0):
-            inputs, labels = data # get the inputs; data is a list of [inputs, labels]
-            optimizer.zero_grad() # zero the parameter gradients
-            
-            outputs = net(inputs) # forward
-            labels = labels.squeeze()  # Ensure labels are properly formatted (e.g., remove any unnecessary dimensions)
-            loss = criterion(outputs, labels) # calculate loss
-            loss.backward() # backward loss
-            optimizer.step() # optimize gradients
+            inputs, labels = data  # get the inputs; data is a list of [inputs, labels]
+            optimizer.zero_grad()  # zero the parameter gradients
 
-            running_loss += loss.item() # save loss
-            _, preds = torch.max(outputs, 1) # save prediction
-            accuracy += torch.sum(preds == labels.data) # save accuracy
-            
-            if i % 1000 == 999:    # every 1000 mini-batches...           
-                steps = epoch * len(trainloader) + i # calculate steps 
-                batch = i*batch_size # calculate batch 
-                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
-                
+            outputs = net(inputs)  # forward
+
+            # Convert class labels to numerical labels
+            labels = [config.CLASSES.index(label) for label in labels]
+
+            labels = torch.tensor(labels, dtype=torch.long)  # Convert labels to a tensor
+            loss = criterion(outputs, labels)  # calculate loss
+            loss.backward()  # backward loss
+            optimizer.step()  # optimize gradients
+
+            running_loss += loss.item()  # save loss
+            _, preds = torch.max(outputs, 1)  # save prediction
+            accuracy += torch.sum(preds == labels.data)  # save accuracy
+
+            if i % 1000 == 999:  # every 1000 mini-batches...
+                steps = epoch * len(trainloader) + i  # calculate steps
+                batch = i * batch_size  # calculate batch
+                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy / batch, steps))
+
                 # Save accuracy and loss to Tensorboard
                 writer.add_scalar('Training loss by steps', running_loss / batch, steps)
                 writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
