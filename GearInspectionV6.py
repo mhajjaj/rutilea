@@ -6,7 +6,8 @@ from tensorboardX import SummaryWriter
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+
 import seaborn as sn
 import pandas as pd
 
@@ -28,6 +29,10 @@ from super_gradients.training.metrics import DetectionMetrics_050
 from super_gradients.training.models.detection_models.pp_yolo_e import (
     PPYoloEPostPredictionCallback
 )
+
+# print("XXXXX", flush=True)
+# # raise ValueError(f"XXXXX")
+# exit()
 
 class config:
     #trainer params
@@ -119,13 +124,13 @@ def createConfusionMatrix(loader):
 
     # iterate over test data
     for inputs, labels in testloader:
-            output = net(inputs) # Feed Network
+        output = net(inputs) # Feed Network
 
-            output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
-            y_pred.extend(output) # Save Prediction
-            
-            labels = labels.data.cpu().numpy()
-            y_true.extend(labels) # Save Truth
+        output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
+        y_pred.extend(output) # Save Prediction
+        
+        labels = labels.data.cpu().numpy()
+        y_true.extend(labels) # Save Truth
 
     # constant for classes -- config.CLASSES
     classes = config.CLASSES
@@ -148,6 +153,91 @@ def createConfusionMatrix(loader):
     plt.figure(figsize=(12, 7))
     return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
     #sn.heatmap(df_cm, annot=True).get_figure()
+
+def createConfusionMatrixForEachClass(loader):
+    y_pred = []
+    y_true = []
+
+    # iterate over test data
+    for inputs, labels in testloader:
+        output = net(inputs) # Feed Network
+
+        output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
+        y_pred.extend(output) # Save Prediction
+        
+        labels = labels.data.cpu().numpy()
+        y_true.extend(labels) # Save Truth
+
+    # constant for classes -- config.CLASSES
+    # classes = config.CLASSES
+
+    # Example dataset
+    true_labels = y_true # [0, 1, 2, 3, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7]  # True class labels
+    predicted_labels = y_pred # [0, 1, 2, 2, 0, 1, 3, 3, 4, 5, 5, 6, 6, 7, 7]  # Predicted class labels
+    class_names = config.CLASSES
+
+    # Initialize dictionaries to store metrics for each class
+    confusion_matrices = {}
+    accuracies = {}
+    precisions = {}
+    recalls = {}
+    f1_scores = {}
+
+    # Loop through each class
+    for class_idx, class_name in enumerate(class_names):
+        # Create binary labels for the current class vs. all other classes
+        binary_true_labels = [1 if label == class_idx else 0 for label in true_labels]
+        binary_predicted_labels = [1 if label == class_idx else 0 for label in predicted_labels]
+
+        # Calculate confusion matrix for the current class
+        conf_matrix = confusion_matrix(binary_true_labels, binary_predicted_labels)
+        
+        # Calculate performance metrics for the current class with zero_division=1.0
+        accuracy = accuracy_score(binary_true_labels, binary_predicted_labels)
+        precision = precision_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        recall = recall_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        f1 = f1_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        
+        # Store the metrics in their respective dictionaries with the class name as the key
+        confusion_matrices[class_name] = conf_matrix
+        accuracies[class_name] = accuracy
+        precisions[class_name] = precision
+        recalls[class_name] = recall
+        f1_scores[class_name] = f1
+
+    # Plot confusion matrices for all classes
+    fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+    for i, class_name in enumerate(class_names):
+        row, col = divmod(i, 4)
+        ax = axes[row, col]
+        
+        im = ax.imshow(confusion_matrices[class_name], cmap='Blues', interpolation='nearest')
+        ax.set_title(f"Class {class_name} Confusion Matrix")
+        
+        # Customize tick labels based on your class names
+        tick_marks = np.arange(2)  # Two classes: 0 and 1
+        ax.set_xticks(tick_marks)
+        ax.set_yticks(tick_marks)
+        ax.set_xticklabels([f'Predicted {class_name}', f'Predicted Other'])
+        ax.set_yticklabels([f'True {class_name}', f'True Other'])
+
+        for i in range(2):
+            for j in range(2):
+                ax.text(j, i, str(confusion_matrices[class_name][i, j]), ha="center", va="center", color="black")
+
+    plt.tight_layout()
+    plt.show()
+
+    # Print metrics for each class
+    for class_name in class_names:
+        print(f"Metrics for Class {class_name}:")
+        print("Accuracy:", accuracies[class_name])
+        print("Precision:", precisions[class_name])
+        print("Recall:", recalls[class_name])
+        print("F1 Score:", f1_scores[class_name])
+        print()
+
+    return sn.heatmap(conf_matrix, annot=True, fmt=".2f", xticklabels=class_names, yticklabels=class_names).get_figure()
 
 if __name__ == '__main__':
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
@@ -257,12 +347,34 @@ if __name__ == '__main__':
                 # Save accuracy and loss to Tensorboard
                 writer.add_scalar('Training loss by steps', running_loss / batch, steps)
                 writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
+
+        trainer.train(model=model,
+                    training_params=train_params,
+                    train_loader=train_data,
+                    valid_loader=val_data)
+
+        best_model = models.get(config.MODEL_NAME,
+                            num_classes=config.NUM_CLASSES,
+                            checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
+
+        trainer.test(model=best_model,
+                test_loader=test_data, 
+                test_metrics_list=DetectionMetrics_050(score_thres=0.1,
+                                                    top_k_predictions=300,
+                                                    num_cls=config.NUM_CLASSES,
+                                                    normalize_targets=True,
+                                                    post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
+                                                                                                            nms_top_k=1000,
+                                                                                                            max_predictions=300,
+                                                                                                            nms_threshold=0.7)
+                                                    ))
                 
                 
         print("Accuracy: {}/{} ({:.3} %) Loss: {:.3}".format(accuracy, len(trainloader), 100. * accuracy / len(trainloader.dataset), running_loss / len(trainloader.dataset)))
         
         # Save confusion matrix to Tensorboard
         writer.add_figure("Confusion matrix", createConfusionMatrix(trainloader), epoch)
+        writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epoch)
         
         running_loss = 0.0
         accuracy = 0
@@ -270,26 +382,26 @@ if __name__ == '__main__':
     plt.savefig('output_gear.png')
     print('Finished Training')
 
-    trainer.train(model=model,
-                training_params=train_params,
-                train_loader=train_data,
-                valid_loader=val_data)
+    # trainer.train(model=model,
+    #             training_params=train_params,
+    #             train_loader=train_data,
+    #             valid_loader=val_data)
 
-    best_model = models.get(config.MODEL_NAME,
-                        num_classes=config.NUM_CLASSES,
-                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
+    # best_model = models.get(config.MODEL_NAME,
+    #                     num_classes=config.NUM_CLASSES,
+    #                     checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
 
-    trainer.test(model=best_model,
-            test_loader=test_data, 
-            test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-                                                top_k_predictions=300,
-                                                num_cls=config.NUM_CLASSES,
-                                                normalize_targets=True,
-                                                post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-                                                                                                        nms_top_k=1000,
-                                                                                                        max_predictions=300,
-                                                                                                        nms_threshold=0.7)
-                                                ))
+    # trainer.test(model=best_model,
+    #         test_loader=test_data, 
+    #         test_metrics_list=DetectionMetrics_050(score_thres=0.1,
+    #                                             top_k_predictions=300,
+    #                                             num_cls=config.NUM_CLASSES,
+    #                                             normalize_targets=True,
+    #                                             post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
+    #                                                                                                     nms_top_k=1000,
+    #                                                                                                     max_predictions=300,
+    #                                                                                                     nms_threshold=0.7)
+    #                                             ))
 
     writer.close()
     PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"

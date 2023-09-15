@@ -3,6 +3,7 @@ U.S.-Coins-Dataset---A.Tatham-5
 Aisin-Gear-Inspection-Dataset
 GearInspection-Dataset
 GearInspection-Dataset2
+GearInspection-Dataset3
 runs
 logs
 checkpoint
@@ -17,3 +18,4 @@ GroundingDINO
 weights
 data
 aisin_data_v2
+AGI-Dataset
