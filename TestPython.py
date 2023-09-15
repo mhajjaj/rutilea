@@ -1,54 +1,96 @@
+import os
+import sys
+import logging
+
+from tensorboardX import SummaryWriter
+
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+
+import seaborn as sn
+import pandas as pd
+
 import torch
-# from torchmetrics.classification import MulticlassConfusionMatrix
-from sklearn.metrics import confusion_matrix
+import torchvision
+import torchvision.transforms as transforms
+
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+from super_gradients.training import Trainer, models
+from super_gradients.training.dataloaders.dataloaders import (
+    coco_detection_yolo_format_train, coco_detection_yolo_format_val
+)
+from super_gradients.training.losses import PPYoloELoss
+from super_gradients.training.metrics import DetectionMetrics_050
+from super_gradients.training.models.detection_models.pp_yolo_e import (
+    PPYoloEPostPredictionCallback
+)
+
+# # Configure logging
+# logging.basicConfig(level=logging.DEBUG)
+
+# # Use logging instead of print
+# logging.debug("Debug Info")
+
+sys.stdout = sys.__stdout__
+print("hello")
 
 
-# Create a MulticlassConfusionMatrix instance
-# metric = MulticlassConfusionMatrix(num_classes=5)
+##############################################################################################
+# import torch
+# # from torchmetrics.classification import MulticlassConfusionMatrix
+# from sklearn.metrics import confusion_matrix
 
-# Simulate some example predictions and targets as lists
-# Replace these with your actual predictions and targets
-predictions = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
-targets = [0, 1, 2, 3, 4, 1, 2, 3, 4, 0]
 
-# Convert the lists to PyTorch tensors
-predictions_tensor = torch.tensor(predictions)
-targets_tensor = torch.tensor(targets)
+# # Create a MulticlassConfusionMatrix instance
+# # metric = MulticlassConfusionMatrix(num_classes=5)
 
-# Update the confusion matrix with tensors
-metric.update(predictions_tensor, targets_tensor)
+# # Simulate some example predictions and targets as lists
+# # Replace these with your actual predictions and targets
+# predictions = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
+# targets = [0, 1, 2, 3, 4, 1, 2, 3, 4, 0]
 
-# Compute the confusion matrix and other metrics
-confusion_matrix = metric.compute()
+# # Convert the lists to PyTorch tensors
+# predictions_tensor = torch.tensor(predictions)
+# targets_tensor = torch.tensor(targets)
 
-correct_predictions = torch.diag(confusion_matrix).sum().item()
-total_predictions = confusion_matrix.sum().item()
-accuracy = correct_predictions / total_predictions
+# # Update the confusion matrix with tensors
+# metric.update(predictions_tensor, targets_tensor)
 
-# Compute the confusion matrix as before
-confusion_matrix = metric.compute()
+# # Compute the confusion matrix and other metrics
+# confusion_matrix = metric.compute()
 
-# Calculate precision, recall, and F1-score for each class
-num_classes = confusion_matrix.size(0)
-precision = torch.zeros(num_classes)
-recall = torch.zeros(num_classes)
-f1_score = torch.zeros(num_classes)
+# correct_predictions = torch.diag(confusion_matrix).sum().item()
+# total_predictions = confusion_matrix.sum().item()
+# accuracy = correct_predictions / total_predictions
 
-for i in range(num_classes):
-    true_positives = confusion_matrix[i, i]
-    false_positives = confusion_matrix[:, i].sum() - true_positives
-    false_negatives = confusion_matrix[i, :].sum() - true_positives
+# # Compute the confusion matrix as before
+# confusion_matrix = metric.compute()
+
+# # Calculate precision, recall, and F1-score for each class
+# num_classes = confusion_matrix.size(0)
+# precision = torch.zeros(num_classes)
+# recall = torch.zeros(num_classes)
+# f1_score = torch.zeros(num_classes)
+
+# for i in range(num_classes):
+#     true_positives = confusion_matrix[i, i]
+#     false_positives = confusion_matrix[:, i].sum() - true_positives
+#     false_negatives = confusion_matrix[i, :].sum() - true_positives
     
-    # Calculate precision, recall, and F1-score, handling zero denominators
-    precision[i] = true_positives / max((true_positives + false_positives), 1e-12)
-    recall[i] = true_positives / max((true_positives + false_negatives), 1e-12)
-    f1_score[i] = 2 * (precision[i] * recall[i]) / max((precision[i] + recall[i]), 1e-12)
+#     # Calculate precision, recall, and F1-score, handling zero denominators
+#     precision[i] = true_positives / max((true_positives + false_positives), 1e-12)
+#     recall[i] = true_positives / max((true_positives + false_negatives), 1e-12)
+#     f1_score[i] = 2 * (precision[i] * recall[i]) / max((precision[i] + recall[i]), 1e-12)
 
-# Print precision, recall, and F1-score for each class
-for i in range(num_classes):
-    print(f"Class {i}: Precision={precision[i]}, Recall={recall[i]}, F1-Score={f1_score[i]}")
+# # Print precision, recall, and F1-score for each class
+# for i in range(num_classes):
+#     print(f"Class {i}: Precision={precision[i]}, Recall={recall[i]}, F1-Score={f1_score[i]}")
 
-
+#################################################################################################
 # import torch
 # from ultralytics import NAS
 

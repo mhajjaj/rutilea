@@ -2,7 +2,6 @@
 import os
 import sys
 
-from PIL import Image
 from tensorboardX import SummaryWriter
 
 import matplotlib.pyplot as plt
@@ -12,7 +11,6 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 import seaborn as sn
 import pandas as pd
 
-import requests
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -21,7 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from super_gradients.training import Trainer, dataloaders, models
+from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import (
     coco_detection_yolo_format_train, coco_detection_yolo_format_val
 )
@@ -30,10 +28,6 @@ from super_gradients.training.metrics import DetectionMetrics_050
 from super_gradients.training.models.detection_models.pp_yolo_e import (
     PPYoloEPostPredictionCallback
 )
-
-# print("XXXXX", flush=True)
-# # raise ValueError(f"XXXXX")
-# exit()
 
 sys.stdout = sys.__stdout__
 
@@ -45,8 +39,10 @@ class config:
     EXPERIMENT_NAME = 'AGIExperiment' 
 
     ##dataset params
-    DATA_DIR = f'{HOME}\GearInspection-Dataset' 
+    DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
     LOGS = f'{CHECKPOINT_DIR}\AGILogs'
+
+    CATEGORY = 'CategoryNG\ClassAll'
 
     TRAIN_IMAGES_DIR = 'train\images' 
     TRAIN_LABELS_DIR = 'train\labels' 
@@ -59,7 +55,7 @@ class config:
     TEST_LABELS_DIR = 'test\labels'
 
     #what class names do you have
-    CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore'] 
+    CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore']
 
     NUM_CLASSES = len(CLASSES)
 
@@ -68,7 +64,7 @@ class config:
     'num_workers':2
     }
 
-    EPOCHS = 2
+    EPOCHS = 1
     RUNNING_LOSS = 0.0
     ACCURACY = 0.0
 
@@ -137,16 +133,6 @@ def createConfusionMatrix(loader):
 
     # constant for classes -- config.CLASSES
     classes = config.CLASSES
-    
-    # # Build confusion matrix
-    # cf_matrix = confusion_matrix(y_true, y_pred)
-    # df_cm = pd.DataFrame(cf_matrix / np.sum(cf_matrix, axis=1)[:, None], 
-    #                     index = [i for i in classes],
-    #                     columns = [i for i in classes])
-                        
-    # plt.figure(figsize = (12,7))
-    # sn.heatmap(df_cm, annot=True)
-    # plt.savefig('output.png')
 
     # Build confusion matrix
     cf_matrix = confusion_matrix(y_true, y_pred, labels=np.arange(len(classes)))
@@ -154,6 +140,7 @@ def createConfusionMatrix(loader):
                          columns=[i for i in classes])
     # Create Heatmap
     plt.figure(figsize=(12, 7))
+    plt.savefig('output1.png')
     return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
     #sn.heatmap(df_cm, annot=True).get_figure()
 
@@ -230,6 +217,7 @@ def createConfusionMatrixForEachClass(loader):
 
     plt.tight_layout()
     plt.show()
+    plt.savefig('output2.png')
 
     # Print metrics for each class
     for class_name in class_names:
@@ -268,6 +256,7 @@ if __name__ == '__main__':
         dataloader_params=config.DATALOADER_PARAMS
     )
 
+    # print(f"DATA_DIR: {config.DATA_DIR} | \v TEST_IMAGES_DIR: {config.TEST_IMAGES_DIR} | \v TEST_LABELS_DIR: {config.TEST_LABELS_DIR}")
     test_data = coco_detection_yolo_format_val(
         dataset_params={
             'data_dir': config.DATA_DIR,
@@ -322,39 +311,44 @@ if __name__ == '__main__':
         "metric_to_watch": 'mAP@0.50'
     }
 
-    running_loss = config.RUNNING_LOSS
-    accuracy = config.ACCURACY
-    epochs = config.EPOCHS
-    batch_size = config.DATALOADER_PARAMS['batch_size']
-
-    for epoch in range(epochs):  # loop over the dataset multiple times
-        print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
-        for i, data in enumerate(trainloader, 0):
-            inputs, labels = data # get the inputs; data is a list of [inputs, labels]
-            optimizer.zero_grad() # zero the parameter gradients
-            
-            outputs = net(inputs) # forward
-            loss = criterion(outputs, labels) # calculate loss
-            loss.backward() # backward loss
-            optimizer.step() # optimize gradients
-
-            running_loss += loss.item() # save loss
-            _, preds = torch.max(outputs, 1) # save prediction
-            accuracy += torch.sum(preds == labels.data) # save accuracy
-            
-            if i % 1000 == 999:    # every 1000 mini-batches...           
-                steps = epoch * len(trainloader) + i # calculate steps 
-                batch = i*batch_size # calculate batch 
-                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
-                
-                # Save accuracy and loss to Tensorboard
-                writer.add_scalar('Training loss by steps', running_loss / batch, steps)
-                writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
-
-        trainer.train(model=model,
+    if trainer.train(model=model,
                     training_params=train_params,
                     train_loader=train_data,
-                    valid_loader=val_data)
+                    valid_loader=val_data):
+        
+        running_loss = config.RUNNING_LOSS
+        accuracy = config.ACCURACY
+        epochs = config.EPOCHS
+        batch_size = config.DATALOADER_PARAMS['batch_size'] 
+        
+        for epoch in range(epochs):  # loop over the dataset multiple times
+            print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
+            for i, data in enumerate(trainloader, 0):
+                inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+                optimizer.zero_grad() # zero the parameter gradients
+                
+                outputs = net(inputs) # forward
+                loss = criterion(outputs, labels) # calculate loss
+                loss.backward() # backward loss
+                optimizer.step() # optimize gradients
+
+                running_loss += loss.item() # save loss
+                _, preds = torch.max(outputs, 1) # save prediction
+                accuracy += torch.sum(preds == labels.data) # save accuracy
+                
+                if i % 1000 == 999:    # every 1000 mini-batches...           
+                    steps = epoch * len(trainloader) + i # calculate steps 
+                    batch = i*batch_size # calculate batch 
+                    print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
+                    
+                    # Save accuracy and loss to Tensorboard
+                    writer.add_scalar('Training loss by steps', running_loss / batch, steps)
+                    writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
+
+        # trainer.train(model=model,
+        #             training_params=train_params,
+        #             train_loader=train_data,
+        #             valid_loader=val_data)
 
         best_model = models.get(config.MODEL_NAME,
                             num_classes=config.NUM_CLASSES,
@@ -380,10 +374,8 @@ if __name__ == '__main__':
         
         running_loss = 0.0
         accuracy = 0
-
-    writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epochs)
     
-    plt.savefig('output_gear.png')
+    writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), config.EPOCHS)    
     print('Finished Training')
 
     # trainer.train(model=model,
