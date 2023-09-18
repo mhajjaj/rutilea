@@ -118,7 +118,6 @@ class CustomDataset(Dataset):
 
         return image, label
 
-
 # transforms
 transform = transforms.Compose(
     [transforms.ToTensor(),
@@ -131,23 +130,13 @@ trainset = CustomDataset(
     transform=transform
 )
 
+# datasets
 # Load your custom testing dataset
 testset = CustomDataset(
     root_dir=config.DATA_DIR,
     train=False,
     transform=transform
 )
-
-# datasets
-# trainset = config.CHECKPOINT_DIR
-# # trainset = torchvision.datasets.FashionMNIST(config.CHECKPOINT_DIR,
-# #     download=True,
-# #     train=True,
-# #     transform=transform)
-# testset = torchvision.datasets.FashionMNIST(config.CHECKPOINT_DIR,
-#     download=True,
-#     train=False,
-#     transform=transform)
 
 # dataloaders
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
@@ -165,7 +154,7 @@ class Net(nn.Module):
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.fc1 = nn.Linear(16 * 227 * 347, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.fc3 = nn.Linear(84, 1)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
@@ -184,7 +173,7 @@ def createConfusionMatrix(loader):
     y_true = []
 
     # iterate over test data
-    for inputs, labels in testloader:
+    for inputs, labels in loader:
         output = net(inputs) # Feed Network
 
         output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
@@ -192,6 +181,10 @@ def createConfusionMatrix(loader):
         
         labels = labels.data.cpu().numpy()
         y_true.extend(labels) # Save Truth
+
+    print(f"y_pred: {y_pred}")
+    print("\v\v\v")
+    print(f"y_true: {y_true}")
 
     # constant for classes -- config.CLASSES
     classes = config.CLASSES
@@ -211,7 +204,7 @@ def createConfusionMatrixForEachClass(loader):
     y_true = []
 
     # iterate over test data
-    for inputs, labels in testloader:
+    for inputs, labels in loader:
         output = net(inputs) # Feed Network
 
         output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
@@ -383,36 +376,6 @@ if __name__ == '__main__':
     epochs = config.EPOCHS
     batch_size = config.DATALOADER_PARAMS['batch_size']
 
-########################### check later
-    for epoch in range(epochs):
-        print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
-        for i, data in enumerate(trainloader, 0):
-            inputs, labels = data  # get the inputs; data is a list of [inputs, labels]
-            optimizer.zero_grad()  # zero the parameter gradients
-
-            outputs = net(inputs)  # forward
-
-            # Convert class labels to numerical labels
-            labels = [config.CLASSES.index(label) for label in labels]
-
-            labels = torch.tensor(labels, dtype=torch.long)  # Convert labels to a tensor
-            loss = criterion(outputs, labels)  # calculate loss
-            loss.backward()  # backward loss
-            optimizer.step()  # optimize gradients
-
-            running_loss += loss.item()  # save loss
-            _, preds = torch.max(outputs, 1)  # save prediction
-            accuracy += torch.sum(preds == labels.data)  # save accuracy
-
-            if i % 1000 == 999:  # every 1000 mini-batches...
-                steps = epoch * len(trainloader) + i  # calculate steps
-                batch = i * batch_size  # calculate batch
-                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy / batch, steps))
-
-                # Save accuracy and loss to Tensorboard
-                writer.add_scalar('Training loss by steps', running_loss / batch, steps)
-                writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
-
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
                         checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
@@ -429,11 +392,7 @@ if __name__ == '__main__':
                                                                                                         nms_threshold=0.7)
                                                 ))
                 
-                
     print("Accuracy: {}/{} ({:.3} %) Loss: {:.3}".format(accuracy, len(trainloader), 100. * accuracy / len(trainloader.dataset), running_loss / len(trainloader.dataset)))
-        
-        # Save confusion matrix to Tensorboard
-    # writer.add_figure("Confusion matrix", createConfusionMatrix(trainloader), epoch)
     
     running_loss = 0.0
     accuracy = 0
