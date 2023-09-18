@@ -61,11 +61,11 @@ class config:
     NUM_CLASSES = len(CLASSES)
 
     DATALOADER_PARAMS={
-    'batch_size':8,
+    'batch_size':16,
     'num_workers':2
     }
 
-    EPOCHS = 10
+    EPOCHS = 500
     RUNNING_LOSS = 0.0
     ACCURACY = 0.0
 
@@ -174,6 +174,7 @@ if __name__ == '__main__':
                                                                                                           nms_threshold=0.7)
                                                   ))
     
+    writer = SummaryWriter(config.LOGS)
     writer.close()
     PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
     torch.save(model.state_dict(), PATH)

@@ -14,7 +14,10 @@ import pandas as pd
 
 import torch
 import torchvision
-import torchvision.transforms as transforms
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torchvision.io import read_image
+from torch.utils.data import Dataset
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -60,7 +63,7 @@ class config:
     NUM_CLASSES = len(CLASSES)
 
     DATALOADER_PARAMS={
-    'batch_size':8,
+    'batch_size':64,
     'num_workers':2
     }
 
@@ -76,75 +79,158 @@ import torch
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-class CustomDataset(Dataset):
-    def __init__(self, root_dir, train=True, transform=None):
-        """
-        Args:
-            root_dir (str): The root directory of the dataset.
-            train (bool): Whether to load the training set (True) or testing set (False).
-            transform (callable, optional): A function/transform to apply to the data.
-        """
-        self.root_dir = root_dir
-        self.train = train
+# class CustomDataset(Dataset):
+#     def __init__(self, root_dir, train=True, transform=None):
+#         """
+#         Args:
+#             root_dir (str): The root directory of the dataset.
+#             train (bool): Whether to load the training set (True) or testing set (False).
+#             transform (callable, optional): A function/transform to apply to the data.
+#         """
+#         self.root_dir = root_dir
+#         self.train = train
+#         self.transform = transform
+
+#         if self.train:
+#             self.images_dir = os.path.join(root_dir, config.TRAIN_IMAGES_DIR)
+#             self.labels_dir = os.path.join(root_dir, config.TRAIN_LABELS_DIR)
+#         else:
+#             self.images_dir = os.path.join(root_dir, config.VAL_IMAGES_DIR if self.train else config.TEST_IMAGES_DIR)
+#             self.labels_dir = os.path.join(root_dir, config.VAL_LABELS_DIR if self.train else config.TEST_LABELS_DIR)
+
+#         self.image_files = os.listdir(self.images_dir)
+#         self.label_files = os.listdir(self.labels_dir)
+
+#     def __len__(self):
+#         return len(self.image_files)  # Return the number of samples in the dataset.
+
+#     def __getitem__(self, idx):
+#         image_name = self.image_files[idx]
+#         label_name = self.label_files[idx]
+
+#         image_path = os.path.join(self.images_dir, image_name)
+#         label_path = os.path.join(self.labels_dir, label_name)
+
+#         image = Image.open(image_path)
+#         # Load the label from the text file
+#         with open(label_path, 'r') as label_file:
+#             label = label_file.read()
+
+#         if self.transform:
+#             image = self.transform(image)
+
+#         return image, label
+
+# Define a custom dataset class to load images and labels from separate folders
+class CustomImageDataset(Dataset):
+    def __init__(self, images_dir, labels_dir, transform=None):
+        self.images_dir = images_dir
+        self.labels_dir = labels_dir
         self.transform = transform
-
-        if self.train:
-            self.images_dir = os.path.join(root_dir, config.TRAIN_IMAGES_DIR)
-            self.labels_dir = os.path.join(root_dir, config.TRAIN_LABELS_DIR)
-        else:
-            self.images_dir = os.path.join(root_dir, config.VAL_IMAGES_DIR if self.train else config.TEST_IMAGES_DIR)
-            self.labels_dir = os.path.join(root_dir, config.VAL_LABELS_DIR if self.train else config.TEST_LABELS_DIR)
-
-        self.image_files = os.listdir(self.images_dir)
-        self.label_files = os.listdir(self.labels_dir)
+        self.image_filenames = os.listdir(images_dir)
 
     def __len__(self):
-        return len(self.image_files)  # Return the number of samples in the dataset.
+        return len(self.image_filenames)
 
     def __getitem__(self, idx):
-        image_name = self.image_files[idx]
-        label_name = self.label_files[idx]
+        img_name = os.path.join(self.images_dir, self.image_filenames[idx])
+        label_name = os.path.join(self.labels_dir, self.image_filenames[idx] + '.txt')  # Assuming labels are in text files
 
-        image_path = os.path.join(self.images_dir, image_name)
-        label_path = os.path.join(self.labels_dir, label_name)
+        print(label_name)
 
-        image = Image.open(image_path)
-        # Load the label from the text file
-        with open(label_path, 'r') as label_file:
-            label = label_file.read()
+        image = read_image(img_name)
+        
+        # Load and process the label file (adjust as needed based on your label file format)
+        with open(label_name, 'r') as label_file:
+            label = label_file.read().strip()
+            label = int(label)  # Assuming labels are integer values
 
         if self.transform:
             image = self.transform(image)
 
         return image, label
 
-# transforms
+# Define your data transformation
 transform = transforms.Compose(
     [transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))])
 
-# Load your custom training dataset
-trainset = CustomDataset(
-    root_dir=config.DATA_DIR,
-    train=True,
+# Create custom datasets for train, validation, and test
+train_dataset = CustomImageDataset(
+    images_dir=f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}',
+    labels_dir=f'{config.DATA_DIR}\\{config.TRAIN_LABELS_DIR}',
     transform=transform
 )
 
+val_dataset = CustomImageDataset(
+    images_dir=f'{config.DATA_DIR}\\{config.VAL_IMAGES_DIR}',
+    labels_dir=f'{config.DATA_DIR}\\{config.VAL_LABELS_DIR}',
+    transform=transform
+)
+
+test_dataset = CustomImageDataset(
+    images_dir=f'{config.DATA_DIR}\\{config.TEST_IMAGES_DIR}',
+    labels_dir=f'{config.DATA_DIR}\\{config.TEST_LABELS_DIR}',
+    transform=transform
+)
+
+train_root = f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}'
+# print(train_dataset.__getitem__())
+exit()
+
+# Create custom datasets for train, validation, and test
+train_dataset = ImageFolder(
+    root=train_root,
+    transform=transform
+)
+
+val_dataset = ImageFolder(
+    root=config.VAL_IMAGES_DIR,
+    transform=transform
+)
+
+test_dataset = ImageFolder(
+    root=config.TEST_IMAGES_DIR,
+    transform=transform
+)
+
+# Define a DataLoader for your train dataset
+batch_size = 64  # Choose an appropriate batch size
+trainloader = torch.utils.data.DataLoader(
+    train_dataset, 
+    batch_size=config.DATALOADER_PARAMS['batch_size'], 
+    shuffle=True, 
+    num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+valloader = torch.utils.data.DataLoader(
+    val_dataset, 
+    batch_size=config.DATALOADER_PARAMS['batch_size'], 
+    shuffle=True, 
+    num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+testloader = torch.utils.data.DataLoader(
+    test_dataset, 
+    batch_size=config.DATALOADER_PARAMS['batch_size'], 
+    shuffle=True, 
+    num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+
+exit()
 # datasets
 # Load your custom testing dataset
-testset = CustomDataset(
-    root_dir=config.DATA_DIR,
-    train=False,
-    transform=transform
-)
+# testset = CustomDataset(
+#     root_dir=config.DATA_DIR,
+#     train=False,
+#     transform=transform
+# )
 
 # dataloaders
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
-                                        shuffle=True, num_workers=config.DATALOADER_PARAMS['num_workers'])
+# trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
+#                                         shuffle=True, num_workers=config.DATALOADER_PARAMS['num_workers'])
 
 
-testloader = torch.utils.data.DataLoader(testset, batch_size=config.DATALOADER_PARAMS['batch_size'],
-                                        shuffle=False, num_workers=config.DATALOADER_PARAMS['num_workers'])
+# testloader = torch.utils.data.DataLoader(testset, batch_size=config.DATALOADER_PARAMS['batch_size'],
+#                                         shuffle=False, num_workers=config.DATALOADER_PARAMS['num_workers'])
 
 class Net(nn.Module):
     def __init__(self):
