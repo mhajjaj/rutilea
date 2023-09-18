@@ -1,0 +1,23 @@
+names:
+- akkon
+- dakon
+- hakkon
+- kizu
+- kuromoyou
+- mizunokori
+- senkizu
+- yogore
+nc: 8 
+license: 202309*
+Project: Aisin Gear Inspection
+url: rutilea
+version: 1
+workspace: Aisin Gear Inspection Dataset @ RUTILEA.COM
+# Original: (1) C:\Users\mhajj\Downloads\dataset1\camera2\predict\OK = 15000
+#           (2) C:\Users\mhajj\Downloads\dataset1\camera2\predict\NG\キズ = 24
+#           (3) C:\Users\mhajj\Downloads\dataset1\camera2\predict\NG\打痕 = 70
+test: GearInspection-Dataset3/CategoryNG/ClassALl/test/images 
+# Original: 
+train: GearInspection-Dataset3/CategoryNG/ClassAll/train/images
+# Original: 
+val: GearInspection-Dataset3/CategoryNG/ClassAll/valid/images

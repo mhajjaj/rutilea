@@ -1,0 +1,11 @@
+names:
+- kizu
+nc: 1 
+license: 202309*
+Project: Aisin Gear Inspection
+url: rutilea
+version: 1
+workspace: Aisin Gear Inspection Dataset @ RUTILEA.COM
+test: ../test/images
+train: GearInspection-Dataset/train/images
+val: GearInspection-Dataset/valid/images
