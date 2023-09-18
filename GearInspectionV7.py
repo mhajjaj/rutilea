@@ -14,6 +14,8 @@ import pandas as pd
 
 import torch
 import torchvision
+from torch.utils.data import Dataset
+from torchvision.transforms import ToTensor
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from torchvision.io import read_image
@@ -63,7 +65,7 @@ class config:
     NUM_CLASSES = len(CLASSES)
 
     DATALOADER_PARAMS={
-    'batch_size':64,
+    'batch_size':16,
     'num_workers':2
     }
 
@@ -74,10 +76,6 @@ class config:
     # model params
     MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
     PRETRAINED_WEIGHTS = 'coco' 
-
-import torch
-from torch.utils.data import Dataset
-from torchvision.transforms import ToTensor
 
 # class CustomDataset(Dataset):
 #     def __init__(self, root_dir, train=True, transform=None):
@@ -121,7 +119,8 @@ from torchvision.transforms import ToTensor
 
 #         return image, label
 
-# Define a custom dataset class to load images and labels from separate folders
+# Define a custom dataset class to load images and labels
+# Define a custom dataset class to load images and labels
 class CustomImageDataset(Dataset):
     def __init__(self, images_dir, labels_dir, transform=None):
         self.images_dir = images_dir
@@ -134,104 +133,24 @@ class CustomImageDataset(Dataset):
 
     def __getitem__(self, idx):
         img_name = os.path.join(self.images_dir, self.image_filenames[idx])
-        label_name = os.path.join(self.labels_dir, self.image_filenames[idx] + '.txt')  # Assuming labels are in text files
-
-        print(label_name)
+        label_name = os.path.join(self.labels_dir, self.image_filenames[idx].replace('.jpg', '.txt'))
 
         image = read_image(img_name)
         
-        # Load and process the label file (adjust as needed based on your label file format)
-        with open(label_name, 'r') as label_file:
-            label = label_file.read().strip()
-            label = int(label)  # Assuming labels are integer values
+        # Attempt to load and process the label file if it exists
+        if os.path.exists(label_name):
+            with open(label_name, 'r') as label_file:
+                label = label_file.read().strip()
+                label = int(label)  # Assuming labels are integer values
+        else:
+            # Handle the case where the label file does not exist
+            label = -1  # You can use a special value to represent missing labels
 
         if self.transform:
             image = self.transform(image)
 
         return image, label
-
-# Define your data transformation
-transform = transforms.Compose(
-    [transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))])
-
-# Create custom datasets for train, validation, and test
-train_dataset = CustomImageDataset(
-    images_dir=f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}',
-    labels_dir=f'{config.DATA_DIR}\\{config.TRAIN_LABELS_DIR}',
-    transform=transform
-)
-
-val_dataset = CustomImageDataset(
-    images_dir=f'{config.DATA_DIR}\\{config.VAL_IMAGES_DIR}',
-    labels_dir=f'{config.DATA_DIR}\\{config.VAL_LABELS_DIR}',
-    transform=transform
-)
-
-test_dataset = CustomImageDataset(
-    images_dir=f'{config.DATA_DIR}\\{config.TEST_IMAGES_DIR}',
-    labels_dir=f'{config.DATA_DIR}\\{config.TEST_LABELS_DIR}',
-    transform=transform
-)
-
-train_root = f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}'
-# print(train_dataset.__getitem__())
-exit()
-
-# Create custom datasets for train, validation, and test
-train_dataset = ImageFolder(
-    root=train_root,
-    transform=transform
-)
-
-val_dataset = ImageFolder(
-    root=config.VAL_IMAGES_DIR,
-    transform=transform
-)
-
-test_dataset = ImageFolder(
-    root=config.TEST_IMAGES_DIR,
-    transform=transform
-)
-
-# Define a DataLoader for your train dataset
-batch_size = 64  # Choose an appropriate batch size
-trainloader = torch.utils.data.DataLoader(
-    train_dataset, 
-    batch_size=config.DATALOADER_PARAMS['batch_size'], 
-    shuffle=True, 
-    num_workers=config.DATALOADER_PARAMS['num_workers'])
-
-valloader = torch.utils.data.DataLoader(
-    val_dataset, 
-    batch_size=config.DATALOADER_PARAMS['batch_size'], 
-    shuffle=True, 
-    num_workers=config.DATALOADER_PARAMS['num_workers'])
-
-testloader = torch.utils.data.DataLoader(
-    test_dataset, 
-    batch_size=config.DATALOADER_PARAMS['batch_size'], 
-    shuffle=True, 
-    num_workers=config.DATALOADER_PARAMS['num_workers'])
-
-
-exit()
-# datasets
-# Load your custom testing dataset
-# testset = CustomDataset(
-#     root_dir=config.DATA_DIR,
-#     train=False,
-#     transform=transform
-# )
-
-# dataloaders
-# trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
-#                                         shuffle=True, num_workers=config.DATALOADER_PARAMS['num_workers'])
-
-
-# testloader = torch.utils.data.DataLoader(testset, batch_size=config.DATALOADER_PARAMS['batch_size'],
-#                                         shuffle=False, num_workers=config.DATALOADER_PARAMS['num_workers'])
-
+    
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -250,10 +169,7 @@ class Net(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
-net = Net()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
+    
 def createConfusionMatrix(loader):
     y_pred = []
     y_true = []
@@ -285,94 +201,222 @@ def createConfusionMatrix(loader):
     return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
     #sn.heatmap(df_cm, annot=True).get_figure()
 
-def createConfusionMatrixForEachClass(loader):
-    y_pred = []
-    y_true = []
+    # Define a custom function to create a confusion matrix for each class
+def createConfusionMatrixForEachClass(data_loader, model):
+    # Set the model in evaluation mode
+    model.eval()
+    
+    # Initialize variables to store the confusion matrices
+    num_classes = len(config.CLASSES)
+    all_confusion_matrices = np.zeros((num_classes, num_classes))
+    
+    with torch.no_grad():
+        for inputs, labels in data_loader:
+            # Forward pass
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            
+            # Compute the confusion matrix for this batch
+            batch_confusion_matrix = confusion_matrix(labels.numpy(), predicted.numpy(), labels=np.arange(num_classes))
+            
+            # Add the batch confusion matrix to the overall confusion matrix
+            all_confusion_matrices += batch_confusion_matrix
+    
+    return all_confusion_matrices
 
-    # iterate over test data
-    for inputs, labels in loader:
-        output = net(inputs) # Feed Network
-
-        output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
-        y_pred.extend(output) # Save Prediction
-        
-        labels = labels.data.cpu().numpy()
-        y_true.extend(labels) # Save Truth
-
-    # constant for classes -- config.CLASSES
-    # classes = config.CLASSES
-
-    # Example dataset
-    true_labels = y_true # [0, 1, 2, 3, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7]  # True class labels
-    predicted_labels = y_pred # [0, 1, 2, 2, 0, 1, 3, 3, 4, 5, 5, 6, 6, 7, 7]  # Predicted class labels
-    class_names = config.CLASSES
-
-    # Initialize dictionaries to store metrics for each class
-    confusion_matrices = {}
-    accuracies = {}
-    precisions = {}
-    recalls = {}
-    f1_scores = {}
-
-    # Loop through each class
-    for class_idx, class_name in enumerate(class_names):
-        # Create binary labels for the current class vs. all other classes
-        binary_true_labels = [1 if label == class_idx else 0 for label in true_labels]
-        binary_predicted_labels = [1 if label == class_idx else 0 for label in predicted_labels]
-
-        # Calculate confusion matrix for the current class
-        conf_matrix = confusion_matrix(binary_true_labels, binary_predicted_labels)
-        
-        # Calculate performance metrics for the current class with zero_division=1.0
-        accuracy = accuracy_score(binary_true_labels, binary_predicted_labels)
-        precision = precision_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
-        recall = recall_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
-        f1 = f1_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
-        
-        # Store the metrics in their respective dictionaries with the class name as the key
-        confusion_matrices[class_name] = conf_matrix
-        accuracies[class_name] = accuracy
-        precisions[class_name] = precision
-        recalls[class_name] = recall
-        f1_scores[class_name] = f1
-
-    # Plot confusion matrices for all classes
-    fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-    for i, class_name in enumerate(class_names):
-        row, col = divmod(i, 4)
-        ax = axes[row, col]
-        
-        im = ax.imshow(confusion_matrices[class_name], cmap='Blues', interpolation='nearest')
-        ax.set_title(f"Class {class_name} Confusion Matrix")
-        
-        # Customize tick labels based on your class names
-        tick_marks = np.arange(2)  # Two classes: 0 and 1
-        ax.set_xticks(tick_marks)
-        ax.set_yticks(tick_marks)
-        ax.set_xticklabels([f'Predicted {class_name}', f'Predicted Other'])
-        ax.set_yticklabels([f'True {class_name}', f'True Other'])
-
-        for i in range(2):
-            for j in range(2):
-                ax.text(j, i, str(confusion_matrices[class_name][i, j]), ha="center", va="center", color="black")
-
-    plt.tight_layout()
-    plt.show()
-    plt.savefig('output2.png')
-
-    # Print metrics for each class
-    for class_name in class_names:
-        print(f"Metrics for Class {class_name}:")
-        print("Accuracy:", accuracies[class_name])
-        print("Precision:", precisions[class_name])
-        print("Recall:", recalls[class_name])
-        print("F1 Score:", f1_scores[class_name])
-        print()
-
-    return sn.heatmap(conf_matrix, annot=True, fmt=".2f", xticklabels=class_names, yticklabels=class_names).get_figure()
-
+##################################################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 if __name__ == '__main__':
+    # Define your data transformation
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))])
+
+    # Create custom datasets for train, validation, and test
+    train_dataset = CustomImageDataset(
+        images_dir=f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}',
+        labels_dir=config.TRAIN_LABELS_DIR,
+        transform=transform
+    )
+
+    val_dataset = CustomImageDataset(
+        images_dir=f'{config.DATA_DIR}\\{config.VAL_IMAGES_DIR}',
+        labels_dir=config.VAL_LABELS_DIR,
+        transform=transform
+    )
+
+    test_dataset = CustomImageDataset(
+        images_dir=f'{config.DATA_DIR}\\{config.TEST_IMAGES_DIR}',
+        labels_dir=config.TEST_LABELS_DIR,
+        transform=transform
+    )
+
+# train_root = f'{config.DATA_DIR}'
+
+# # Create custom datasets for train, validation, and test
+# train_dataset = ImageFolder(
+#     root=train_root,
+#     transform=transform
+# )
+
+# val_dataset = ImageFolder(
+#     root=config.VAL_IMAGES_DIR,
+#     transform=transform
+# )
+
+# test_dataset = ImageFolder(
+#     root=config.TEST_IMAGES_DIR,
+#     transform=transform
+# )
+
+# Define a DataLoader for your train dataset
+# batch_size = 64  # Choose an appropriate batch size
+    trainloader = torch.utils.data.DataLoader(
+        train_dataset, 
+        batch_size=config.DATALOADER_PARAMS['batch_size'], 
+        shuffle=True, 
+        num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+    valloader = torch.utils.data.DataLoader(
+        val_dataset, 
+        batch_size=config.DATALOADER_PARAMS['batch_size'], 
+        shuffle=True, 
+        num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+    testloader = torch.utils.data.DataLoader(
+        test_dataset, 
+        batch_size=config.DATALOADER_PARAMS['batch_size'], 
+        shuffle=True, 
+        num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+
+# exit()
+# datasets
+# Load your custom testing dataset
+# testset = CustomDataset(
+#     root_dir=config.DATA_DIR,
+#     train=False,
+#     transform=transform
+# )
+
+# dataloaders
+# trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
+#                                         shuffle=True, num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+
+# testloader = torch.utils.data.DataLoader(testset, batch_size=config.DATALOADER_PARAMS['batch_size'],
+#                                         shuffle=False, num_workers=config.DATALOADER_PARAMS['num_workers'])
+
+    net = Net()
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+# def createConfusionMatrixForEachClass(loader):
+#     y_pred = []
+#     y_true = []
+
+#     # iterate over test data
+#     for inputs, labels in loader:
+#         output = net(inputs) # Feed Network
+
+#         output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
+#         y_pred.extend(output) # Save Prediction
+        
+#         labels = labels.data.cpu().numpy()
+#         y_true.extend(labels) # Save Truth
+
+#     # constant for classes -- config.CLASSES
+#     # classes = config.CLASSES
+
+#     # Example dataset
+#     true_labels = y_true # [0, 1, 2, 3, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7]  # True class labels
+#     predicted_labels = y_pred # [0, 1, 2, 2, 0, 1, 3, 3, 4, 5, 5, 6, 6, 7, 7]  # Predicted class labels
+#     class_names = config.CLASSES
+
+#     # Initialize dictionaries to store metrics for each class
+#     confusion_matrices = {}
+#     accuracies = {}
+#     precisions = {}
+#     recalls = {}
+#     f1_scores = {}
+
+#     # Loop through each class
+#     for class_idx, class_name in enumerate(class_names):
+#         # Create binary labels for the current class vs. all other classes
+#         binary_true_labels = [1 if label == class_idx else 0 for label in true_labels]
+#         binary_predicted_labels = [1 if label == class_idx else 0 for label in predicted_labels]
+
+#         # Calculate confusion matrix for the current class
+#         conf_matrix = confusion_matrix(binary_true_labels, binary_predicted_labels)
+        
+#         # Calculate performance metrics for the current class with zero_division=1.0
+#         accuracy = accuracy_score(binary_true_labels, binary_predicted_labels)
+#         precision = precision_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+#         recall = recall_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+#         f1 = f1_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        
+#         # Store the metrics in their respective dictionaries with the class name as the key
+#         confusion_matrices[class_name] = conf_matrix
+#         accuracies[class_name] = accuracy
+#         precisions[class_name] = precision
+#         recalls[class_name] = recall
+#         f1_scores[class_name] = f1
+
+#     # Plot confusion matrices for all classes
+#     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+#     for i, class_name in enumerate(class_names):
+#         row, col = divmod(i, 4)
+#         ax = axes[row, col]
+        
+#         im = ax.imshow(confusion_matrices[class_name], cmap='Blues', interpolation='nearest')
+#         ax.set_title(f"Class {class_name} Confusion Matrix")
+        
+#         # Customize tick labels based on your class names
+#         tick_marks = np.arange(2)  # Two classes: 0 and 1
+#         ax.set_xticks(tick_marks)
+#         ax.set_yticks(tick_marks)
+#         ax.set_xticklabels([f'Predicted {class_name}', f'Predicted Other'])
+#         ax.set_yticklabels([f'True {class_name}', f'True Other'])
+
+#         for i in range(2):
+#             for j in range(2):
+#                 ax.text(j, i, str(confusion_matrices[class_name][i, j]), ha="center", va="center", color="black")
+
+#     plt.tight_layout()
+#     plt.show()
+#     plt.savefig('output2.png')
+
+#     # Print metrics for each class
+#     for class_name in class_names:
+#         print(f"Metrics for Class {class_name}:")
+#         print("Accuracy:", accuracies[class_name])
+#         print("Precision:", precisions[class_name])
+#         print("Recall:", recalls[class_name])
+#         print("F1 Score:", f1_scores[class_name])
+#         print()
+
+#     return sn.heatmap(conf_matrix, annot=True, fmt=".2f", xticklabels=class_names, yticklabels=class_names).get_figure()
+
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
+
+    trainloader=transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((512,640)),
+        transforms.ToTensor()
+    ])
+    # Get a single batch from the trainloader
+    for batch_idx, (images, labels) in enumerate(trainloader):
+
+        # Check data type of images and labels in the batch
+        image_data_type = images.dtype
+        label_data_type = labels.dtype
+        
+        # Print data types
+        print(f"Batch {batch_idx + 1}:")
+        print(f"Image data type: {image_data_type}")
+        print(f"Label data type: {label_data_type}")
+        
+        # Break after checking the first batch (you can check more if needed)
+        break
 
     os.makedirs(config.LOGS, exist_ok=True)
     writer = SummaryWriter(config.LOGS)
@@ -452,15 +496,70 @@ if __name__ == '__main__':
         "metric_to_watch": 'mAP@0.50'
     }
 
-    trainer.train(model=model,
-                training_params=train_params,
-                train_loader=train_data,
-                valid_loader=val_data)
-    
     running_loss = config.RUNNING_LOSS
     accuracy = config.ACCURACY
     epochs = config.EPOCHS
     batch_size = config.DATALOADER_PARAMS['batch_size']
+
+    for epoch in range(epochs):
+
+    # for epoch in range(epochs):  # loop over the dataset multiple times
+    #     print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
+        # for i, data in enumerate(trainloader, 0):
+        #     inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+        #     optimizer.zero_grad() # zero the parameter gradients
+            
+        #     outputs = net(inputs) # forward
+        #     loss = criterion(outputs, labels) # calculate loss
+        #     loss.backward() # backward loss
+        #     optimizer.step() # optimize gradients
+
+        #     running_loss += loss.item() # save loss
+        #     _, preds = torch.max(outputs, 1) # save prediction
+        #     accuracy += torch.sum(preds == labels.data) # save accuracy
+            
+        #     if i % 1000 == 999:    # every 1000 mini-batches...           
+        #         steps = epoch * len(trainloader) + i # calculate steps 
+        #         batch = i*batch_size # calculate batch 
+        #         print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
+                
+        #         # Save accuracy and loss to Tensorboard
+        #         writer.add_scalar('Training loss by steps', running_loss / batch, steps)
+        #         writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
+
+       
+        # writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epoch)    
+            # Train your model here
+        trainer.train(model=model,
+            training_params=train_params,
+            train_loader=train_data,
+            valid_loader=val_data)
+        
+        # Calculate the confusion matrix for each class
+        try:
+            confusion_matrices = createConfusionMatrixForEachClass(trainloader, model)
+        except TypeError:
+            print("Error: Unable to create confusion matrices. Check data type compatibility.")
+            continue
+
+        # Add the confusion matrices to TensorBoard
+        for class_idx, confusion_matrix in enumerate(confusion_matrices):
+            plt.figure()
+            plt.imshow(confusion_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+            plt.title(f'Confusion Matrix - Class {class_idx}')
+            plt.colorbar()
+            plt.ylabel('True label')
+            plt.xlabel('Predicted label')
+            writer.add_figure(f"Confusion Matrix - Class {class_idx}", plt.gcf(), epoch)
+            plt.close()
+
+        # Add the confusion matrices to TensorBoard
+        for class_idx, confusion_matrix in enumerate(confusion_matrices):
+            # Convert the confusion matrix (NumPy ndarray) to a PyTorch tensor
+            confusion_matrix_tensor = torch.tensor(confusion_matrix, dtype=torch.float32)
+            
+            # Add the confusion matrix tensor to TensorBoard
+            writer.add_image(f"Confusion Matrix - Class {class_idx}", confusion_matrix_tensor, epoch)
 
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
@@ -483,7 +582,6 @@ if __name__ == '__main__':
     running_loss = 0.0
     accuracy = 0
     
-    # writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epochs)
     print("Finished Training")
 
     writer.close()
