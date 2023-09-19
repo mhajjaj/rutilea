@@ -1,6 +1,7 @@
 # Developed by m.hajjaj at rutilea
 import os
 import sys
+from PIL import Image
 
 from tensorboardX import SummaryWriter
 
@@ -12,13 +13,17 @@ import seaborn as sn
 import pandas as pd
 
 import torch
+import torchvision
+from torch.utils.data import Dataset
+from torchvision.transforms import ToTensor
 from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from torchvision.io import read_image
+from torch.utils.data import Dataset
 
 import torch.nn as nn
-
+import torch.nn.functional as F
 import torch.optim as optim
-from dataset import CustomImageDataset
-
 
 from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import (
@@ -31,10 +36,139 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
 )
 
 sys.stdout = sys.__stdout__
-from variables import Config as config
-from variables import Net
 
+class config:
+    #trainer params
+    HOME = os.getcwd()
 
+    CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset2' #specify the path you want to save checkpoints to
+    EXPERIMENT_NAME = 'AGIExperiment2' 
+
+    ##dataset params
+    DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
+    LOGS = f'{CHECKPOINT_DIR}\AGILogs2'
+
+    # CATEGORY = 'CategoryNG\ClassAll'
+
+    TRAIN_IMAGES_DIR = 'train\images' 
+    TRAIN_LABELS_DIR = 'train\labels' 
+
+    VAL_IMAGES_DIR = 'valid\images'
+    VAL_LABELS_DIR = 'valid\labels' 
+
+    TEST_IMAGES_DIR = 'test\images' 
+    TEST_LABELS_DIR = 'test\labels'
+
+    #what class names do you have
+    CLASSES = ['akkon', 'dakon', 'kizu', 'hakkon', 'kuromoyou', 'mizunokori', 'senkizu', 'yogore']
+
+    NUM_CLASSES = len(CLASSES)
+
+    DATALOADER_PARAMS={
+    'batch_size':16,
+    'num_workers':2
+    }
+
+    EPOCHS = 1
+    RUNNING_LOSS = 0.0
+    ACCURACY = 0.0
+
+    # model params
+    MODEL_NAME = 'yolo_nas_l' # choose from yolo_nas_s, yolo_nas_m, yolo_nas_l
+    PRETRAINED_WEIGHTS = 'coco' 
+
+# class CustomDataset(Dataset):
+#     def __init__(self, root_dir, train=True, transform=None):
+#         """
+#         Args:
+#             root_dir (str): The root directory of the dataset.
+#             train (bool): Whether to load the training set (True) or testing set (False).
+#             transform (callable, optional): A function/transform to apply to the data.
+#         """
+#         self.root_dir = root_dir
+#         self.train = train
+#         self.transform = transform
+
+#         if self.train:
+#             self.images_dir = os.path.join(root_dir, config.TRAIN_IMAGES_DIR)
+#             self.labels_dir = os.path.join(root_dir, config.TRAIN_LABELS_DIR)
+#         else:
+#             self.images_dir = os.path.join(root_dir, config.VAL_IMAGES_DIR if self.train else config.TEST_IMAGES_DIR)
+#             self.labels_dir = os.path.join(root_dir, config.VAL_LABELS_DIR if self.train else config.TEST_LABELS_DIR)
+
+#         self.image_files = os.listdir(self.images_dir)
+#         self.label_files = os.listdir(self.labels_dir)
+
+#     def __len__(self):
+#         return len(self.image_files)  # Return the number of samples in the dataset.
+
+#     def __getitem__(self, idx):
+#         image_name = self.image_files[idx]
+#         label_name = self.label_files[idx]
+
+#         image_path = os.path.join(self.images_dir, image_name)
+#         label_path = os.path.join(self.labels_dir, label_name)
+
+#         image = Image.open(image_path)
+#         # Load the label from the text file
+#         with open(label_path, 'r') as label_file:
+#             label = label_file.read()
+
+#         if self.transform:
+#             image = self.transform(image)
+
+#         return image, label
+
+# Define a custom dataset class to load images and labels
+# Define a custom dataset class to load images and labels
+class CustomImageDataset(Dataset):
+    def __init__(self, images_dir, labels_dir, transform=None):
+        self.images_dir = images_dir
+        self.labels_dir = labels_dir
+        self.transform = transform
+        self.image_filenames = os.listdir(images_dir)
+
+    def __len__(self):
+        return len(self.image_filenames)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.images_dir, self.image_filenames[idx])
+        label_name = os.path.join(self.labels_dir, self.image_filenames[idx].replace('.jpg', '.txt'))
+
+        image = read_image(img_name)
+        
+        # Attempt to load and process the label file if it exists
+        if os.path.exists(label_name):
+            with open(label_name, 'r') as label_file:
+                label = label_file.read().strip()
+                label = int(label)  # Assuming labels are integer values
+        else:
+            # Handle the case where the label file does not exist
+            label = -1  # You can use a special value to represent missing labels
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, label
+    
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 227 * 347, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 1)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 227 * 347)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
     
 def createConfusionMatrix(loader):
     y_pred = []
@@ -42,7 +176,7 @@ def createConfusionMatrix(loader):
 
     # iterate over test data
     for inputs, labels in loader:
-        output = Net(inputs) # Feed Network
+        output = net(inputs) # Feed Network
 
         output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
         y_pred.extend(output) # Save Prediction
@@ -67,9 +201,8 @@ def createConfusionMatrix(loader):
     return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
     #sn.heatmap(df_cm, annot=True).get_figure()
 
-    
-def createConfusionMatrixForEachClass(data_loader, model):
     # Define a custom function to create a confusion matrix for each class
+def createConfusionMatrixForEachClass(data_loader, model):
     # Set the model in evaluation mode
     model.eval()
     
@@ -92,8 +225,7 @@ def createConfusionMatrixForEachClass(data_loader, model):
     return all_confusion_matrices
 
 ##################################################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-if __name__ == '__main__':
- 
+
     # Define your data transformation
     transform = transforms.Compose(
         [transforms.ToTensor(),
@@ -118,6 +250,24 @@ if __name__ == '__main__':
         transform=transform
     )
 
+# train_root = f'{config.DATA_DIR}'
+
+# # Create custom datasets for train, validation, and test
+# train_dataset = ImageFolder(
+#     root=train_root,
+#     transform=transform
+# )
+
+# val_dataset = ImageFolder(
+#     root=config.VAL_IMAGES_DIR,
+#     transform=transform
+# )
+
+# test_dataset = ImageFolder(
+#     root=config.TEST_IMAGES_DIR,
+#     transform=transform
+# )
+
 # Define a DataLoader for your train dataset
 # batch_size = 64  # Choose an appropriate batch size
     trainloader = torch.utils.data.DataLoader(
@@ -138,8 +288,7 @@ if __name__ == '__main__':
         shuffle=True, 
         num_workers=config.DATALOADER_PARAMS['num_workers'])
 
-    createConfusionMatrix(train_dataset)
-    sys.exit()
+
 # exit()
 # datasets
 # Load your custom testing dataset
@@ -370,33 +519,6 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
 
-    # for epoch in range(epochs):  # loop over the dataset multiple times
-    #     print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
-        # for i, data in enumerate(trainloader, 0):
-        #     inputs, labels = data # get the inputs; data is a list of [inputs, labels]
-        #     optimizer.zero_grad() # zero the parameter gradients
-            
-        #     outputs = net(inputs) # forward
-        #     loss = criterion(outputs, labels) # calculate loss
-        #     loss.backward() # backward loss
-        #     optimizer.step() # optimize gradients
-
-        #     running_loss += loss.item() # save loss
-        #     _, preds = torch.max(outputs, 1) # save prediction
-        #     accuracy += torch.sum(preds == labels.data) # save accuracy
-            
-        #     if i % 1000 == 999:    # every 1000 mini-batches...           
-        #         steps = epoch * len(trainloader) + i # calculate steps 
-        #         batch = i*batch_size # calculate batch 
-        #         print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
-                
-        #         # Save accuracy and loss to Tensorboard
-        #         writer.add_scalar('Training loss by steps', running_loss / batch, steps)
-        #         writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
-
-       
-        # writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epoch)    
-            # Train your model here
         trainer.train(model=model,
             training_params=train_params,
             train_loader=train_data,
