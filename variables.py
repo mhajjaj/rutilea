@@ -61,6 +61,5 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
     
-
 if __name__ == '__main__':
     pass

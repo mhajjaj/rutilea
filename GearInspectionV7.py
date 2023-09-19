@@ -34,8 +34,12 @@ sys.stdout = sys.__stdout__
 from variables import Config as config
 from variables import Net
 
+sys.stdout = sys.__stdout__
+
 
     
+sys.stdout = sys.__stdout__
+
 def createConfusionMatrix(loader):
     y_pred = []
     y_true = []
@@ -67,6 +71,12 @@ def createConfusionMatrix(loader):
     return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
     #sn.heatmap(df_cm, annot=True).get_figure()
 
+    
+
+    
+    
+
+    
     
 def createConfusionMatrixForEachClass(data_loader, model):
     # Define a custom function to create a confusion matrix for each class
@@ -137,25 +147,6 @@ if __name__ == '__main__':
         batch_size=config.DATALOADER_PARAMS['batch_size'], 
         shuffle=True, 
         num_workers=config.DATALOADER_PARAMS['num_workers'])
-
-    createConfusionMatrix(train_dataset)
-    sys.exit()
-# exit()
-# datasets
-# Load your custom testing dataset
-# testset = CustomDataset(
-#     root_dir=config.DATA_DIR,
-#     train=False,
-#     transform=transform
-# )
-
-# dataloaders
-# trainloader = torch.utils.data.DataLoader(trainset, batch_size=config.DATALOADER_PARAMS['batch_size'],
-#                                         shuffle=True, num_workers=config.DATALOADER_PARAMS['num_workers'])
-
-
-# testloader = torch.utils.data.DataLoader(testset, batch_size=config.DATALOADER_PARAMS['batch_size'],
-#                                         shuffle=False, num_workers=config.DATALOADER_PARAMS['num_workers'])
 
     net = Net()
     criterion = nn.CrossEntropyLoss()
