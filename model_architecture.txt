@@ -1,0 +1,1085 @@
+YoloNAS_L(
+  (backbone): NStageBackbone(
+    (stem): YoloNASStem(
+      (conv): QARepVGGBlock(
+        (nonlinearity): ReLU(inplace=True)
+        (se): Identity()
+        (branch_3x3): Sequential(
+          (conv): Conv2d(3, 48, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(48, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        )
+        (branch_1x1): Conv2d(3, 48, kernel_size=(1, 1), stride=(2, 2))
+        (post_bn): BatchNorm2d(48, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (rbr_reparam): Conv2d(3, 48, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      )
+    )
+    (stage1): YoloNASStage(
+      (downsample): QARepVGGBlock(
+        (nonlinearity): ReLU(inplace=True)
+        (se): Identity()
+        (branch_3x3): Sequential(
+          (conv): Conv2d(48, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        )
+        (branch_1x1): Conv2d(48, 96, kernel_size=(1, 1), stride=(2, 2))
+        (post_bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (rbr_reparam): Conv2d(48, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(384, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(96, 96, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (stage2): YoloNASStage(
+      (downsample): QARepVGGBlock(
+        (nonlinearity): ReLU(inplace=True)
+        (se): Identity()
+        (branch_3x3): Sequential(
+          (conv): Conv2d(96, 192, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        )
+        (branch_1x1): Conv2d(96, 192, kernel_size=(1, 1), stride=(2, 2))
+        (post_bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (rbr_reparam): Conv2d(96, 192, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(192, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(192, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(640, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (2): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (stage3): YoloNASStage(
+      (downsample): QARepVGGBlock(
+        (nonlinearity): ReLU(inplace=True)
+        (se): Identity()
+        (branch_3x3): Sequential(
+          (conv): Conv2d(192, 384, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(384, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        )
+        (branch_1x1): Conv2d(192, 384, kernel_size=(1, 1), stride=(2, 2))
+        (post_bn): BatchNorm2d(384, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (rbr_reparam): Conv2d(192, 384, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(384, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(384, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(1792, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(384, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (2): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (3): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (4): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (stage4): YoloNASStage(
+      (downsample): QARepVGGBlock(
+        (nonlinearity): ReLU(inplace=True)
+        (se): Identity()
+        (branch_3x3): Sequential(
+          (conv): Conv2d(384, 768, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+          (bn): BatchNorm2d(768, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        )
+        (branch_1x1): Conv2d(384, 768, kernel_size=(1, 1), stride=(2, 2))
+        (post_bn): BatchNorm2d(768, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (rbr_reparam): Conv2d(384, 768, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(768, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(768, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(2048, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(768, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (context_module): SPP(
+      (cv1): Conv(
+        (conv): Conv2d(768, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(384, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (cv2): Conv(
+        (conv): Conv2d(1536, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(768, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (m): ModuleList(
+        (0): MaxPool2d(kernel_size=5, stride=1, padding=2, dilation=1, ceil_mode=False)
+        (1): MaxPool2d(kernel_size=9, stride=1, padding=4, dilation=1, ceil_mode=False)
+        (2): MaxPool2d(kernel_size=13, stride=1, padding=6, dilation=1, ceil_mode=False)
+      )
+    )
+  )
+  (neck): YoloNASPANNeckWithC2(
+    (neck1): YoloNASUpStage(
+      (reduce_skip1): Conv(
+        (conv): Conv2d(384, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (reduce_skip2): Conv(
+        (conv): Conv2d(192, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (conv): Conv(
+        (conv): Conv2d(768, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (upsample): ConvTranspose2d(192, 192, kernel_size=(2, 2), stride=(2, 2))
+      (downsample): Conv(
+        (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (reduce_after_concat): Conv(
+        (conv): Conv2d(576, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(192, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(192, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(256, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (2): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (3): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (neck2): YoloNASUpStage(
+      (reduce_skip1): Conv(
+        (conv): Conv2d(192, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (reduce_skip2): Conv(
+        (conv): Conv2d(96, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (conv): Conv(
+        (conv): Conv2d(192, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (upsample): ConvTranspose2d(96, 96, kernel_size=(2, 2), stride=(2, 2))
+      (downsample): Conv(
+        (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (reduce_after_concat): Conv(
+        (conv): Conv2d(288, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(96, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(96, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(256, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (2): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (3): YoloNASBottleneck(
+            (cv1): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (cv2): QARepVGGBlock(
+              (nonlinearity): ReLU(inplace=True)
+              (se): Identity()
+              (branch_3x3): Sequential(
+                (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              )
+              (branch_1x1): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1))
+              (identity): Residual()
+              (post_bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (rbr_reparam): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (neck3): YoloNASDownStage(
+      (conv): Conv(
+        (conv): Conv2d(96, 96, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn): BatchNorm2d(96, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(192, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(192, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(256, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (2): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (3): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+    (neck4): YoloNASDownStage(
+      (conv): Conv(
+        (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+        (bn): BatchNorm2d(192, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+        (act): ReLU(inplace=True)
+      )
+      (blocks): YoloNASCSPLayer(
+        (conv1): Conv(
+          (conv): Conv2d(384, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv2): Conv(
+          (conv): Conv2d(384, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (conv3): Conv(
+          (conv): Conv2d(512, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(384, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+        (bottlenecks): SequentialWithIntermediates(
+          (0): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (1): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (2): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+          (3): YoloNASBottleneck(
+            (cv1): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (cv2): Conv(
+              (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+              (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+              (act): ReLU(inplace=True)
+            )
+            (shortcut): Residual()
+            (drop_path): Identity()
+          )
+        )
+        (dropout): Identity()
+      )
+    )
+  )
+  (heads): NDFLHeads(
+    (head1): YoloNASDFLHead(
+      (stem): ConvBNReLU(
+        (seq): Sequential(
+          (conv): Conv2d(96, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+      )
+      (cls_convs): Sequential(
+        (0): ConvBNReLU(
+          (seq): Sequential(
+            (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+            (act): ReLU(inplace=True)
+          )
+        )
+      )
+      (reg_convs): Sequential(
+        (0): ConvBNReLU(
+          (seq): Sequential(
+            (conv): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(128, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+            (act): ReLU(inplace=True)
+          )
+        )
+      )
+      (cls_pred): Conv2d(128, 8, kernel_size=(1, 1), stride=(1, 1))
+      (reg_pred): Conv2d(128, 68, kernel_size=(1, 1), stride=(1, 1))
+      (cls_dropout_rate): Identity()
+      (reg_dropout_rate): Identity()
+    )
+    (head2): YoloNASDFLHead(
+      (stem): ConvBNReLU(
+        (seq): Sequential(
+          (conv): Conv2d(192, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+      )
+      (cls_convs): Sequential(
+        (0): ConvBNReLU(
+          (seq): Sequential(
+            (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+            (act): ReLU(inplace=True)
+          )
+        )
+      )
+      (reg_convs): Sequential(
+        (0): ConvBNReLU(
+          (seq): Sequential(
+            (conv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(256, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+            (act): ReLU(inplace=True)
+          )
+        )
+      )
+      (cls_pred): Conv2d(256, 8, kernel_size=(1, 1), stride=(1, 1))
+      (reg_pred): Conv2d(256, 68, kernel_size=(1, 1), stride=(1, 1))
+      (cls_dropout_rate): Identity()
+      (reg_dropout_rate): Identity()
+    )
+    (head3): YoloNASDFLHead(
+      (stem): ConvBNReLU(
+        (seq): Sequential(
+          (conv): Conv2d(384, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+          (act): ReLU(inplace=True)
+        )
+      )
+      (cls_convs): Sequential(
+        (0): ConvBNReLU(
+          (seq): Sequential(
+            (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+            (act): ReLU(inplace=True)
+          )
+        )
+      )
+      (reg_convs): Sequential(
+        (0): ConvBNReLU(
+          (seq): Sequential(
+            (conv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (bn): BatchNorm2d(512, eps=0.001, momentum=0.03, affine=True, track_running_stats=True)
+            (act): ReLU(inplace=True)
+          )
+        )
+      )
+      (cls_pred): Conv2d(512, 8, kernel_size=(1, 1), stride=(1, 1))
+      (reg_pred): Conv2d(512, 68, kernel_size=(1, 1), stride=(1, 1))
+      (cls_dropout_rate): Identity()
+      (reg_dropout_rate): Identity()
+    )
+  )
+)

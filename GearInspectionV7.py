@@ -69,15 +69,12 @@ def createConfusionMatrix(loader):
     plt.figure(figsize=(12, 7))
     plt.savefig('output1.png')
     return sn.heatmap(df_cm, annot=True, fmt=".2f", xticklabels=classes, yticklabels=classes).get_figure()
-    #sn.heatmap(df_cm, annot=True).get_figure()
+    #sn.heatmap(df_cm, annot=True).get_figure()    
 
-    
+def save_model_architecture(model, filename):
+    with open(filename, 'w') as f:
+        f.write(str(model))
 
-    
-    
-
-    
-    
 def createConfusionMatrixForEachClass(data_loader, model):
     # Define a custom function to create a confusion matrix for each class
     # Set the model in evaluation mode
@@ -90,14 +87,98 @@ def createConfusionMatrixForEachClass(data_loader, model):
     with torch.no_grad():
         for inputs, labels in data_loader:
             # Forward pass
+
+            # print(f'input____: {inputs.shape}')
+            # Check the number of channels
+            num_channels = inputs.shape[:]
+            print("Number of channels in input data:", num_channels)
+            # Save the model architecture to txt file
+            save_model_architecture(model, 'model_architecture.txt')
+            # print(f"____model: {model}")
+            # outputs = model(inputs)
+            # # exit()
+            # # _, predicted = torch.max(outputs, 1)
+            # #print(f"torch_max(type of outputs):{type(outputs)}")
+            # #exit()
+            # outputs_t = torch.tensor(outputs)
+            # outputs_numpy = outputs.detach().cpu().numpy()
+
+            # max_values, predicted = torch.max(outputs_t, dim=1)
+            # print(f"predicted: {predicted}, max_values: {max_values}")
+            
+            # # Compute the confusion matrix for this batch
+            # batch_confusion_matrix = confusion_matrix(labels.numpy(), predicted.numpy(), labels=np.arange(num_classes))
+            
+            # # Add the batch confusion matrix to the overall confusion matrix
+            # all_confusion_matrices += batch_confusion_matrix
+
+            # Assuming outputs is a tuple of tensors
             outputs = model(inputs)
-            _, predicted = torch.max(outputs, 1)
-            
-            # Compute the confusion matrix for this batch
-            batch_confusion_matrix = confusion_matrix(labels.numpy(), predicted.numpy(), labels=np.arange(num_classes))
-            
-            # Add the batch confusion matrix to the overall confusion matrix
-            all_confusion_matrices += batch_confusion_matrix
+
+            # Initialize lists to store max values and predicted labels for each tensor in the tuple
+            all_max_values = []
+            all_predicted = []
+            print(f"outputs_type: {type(outputs)}")
+
+            # Assuming outputs is a tuple of tensors
+            outputs = model(inputs)
+
+            # Initialize lists to store max values and predicted labels for each tensor in the tuple
+            all_max_values = []
+            all_predicted = []
+            print(f"outputs_type: {type(outputs)}")
+
+            for output_tensor in outputs:
+                # Find the maximum values and predicted labels for each tensor in the tuple
+                print(f"output_type1: {type(output_tensor)}")
+                max_values, predicted = torch.max(output_tensor, dim=1)
+                
+                # Convert the predicted labels to a NumPy array
+                predicted = predicted.cpu().numpy()
+                
+                # Append the results to the respective lists
+                all_max_values.append(max_values)
+                all_predicted.append(predicted)
+
+            # for output_tensor in outputs:
+            #     # Find the maximum values and predicted labels for each tensor in the tuple
+            #     print(f"output_type1: {type(output_tensor)}")
+            #     output_tensor = list(output_tensor)
+            #     print(f"output_type2: {type(output_tensor)}")
+            #     output_tensor = torch.tensor(output_tensor)
+            #     output_tensor = torch.stack([output_tensor], dim=0)
+            #     # output_tensor = torch.tensor(output_tensor)
+            #     print(f"output_type3: {type(output_tensor)}")
+            #     max_values, predicted = torch.max(output_tensor, dim=1)
+                
+            #     # Convert the predicted labels to a NumPy array
+            #     predicted = predicted.cpu().numpy()
+                
+            #     # Append the results to the respective lists
+            #     all_max_values.append(max_values)
+            #     all_predicted.append(predicted)
+
+            # Now you can process the lists of max values and predicted labels as needed
+            # For example, you can concatenate them along dimension 1 if needed:
+            max_values_concatenated = torch.cat(all_max_values, dim=1)
+            predicted_concatenated = torch.cat(all_predicted, dim=1)
+
+            # Print or use the concatenated tensors as needed
+            print(f"max_values_concatenated: {max_values_concatenated}")
+            print(f"predicted_concatenated: {predicted_concatenated}")
+
+            max_values, predicted = torch.max(outputs_concatenated, dim=1)
+            print(f"predicted: {predicted}, max_values: {max_values}")
+
+            # Convert the predicted and true labels to NumPy arrays
+            predicted = predicted.cpu().numpy()
+            true_labels = labels.cpu().numpy()
+
+            # Compute the confusion matrix for the current batch
+            batch_confusion_matrix = confusion_matrix(true_labels, predicted, labels=np.arange(num_classes))
+
+            # Add the batch_confusion_matrix to a list (or perform any other desired operations)
+            all_confusion_matrices.append(batch_confusion_matrix)
     
     return all_confusion_matrices
 
@@ -105,31 +186,37 @@ def createConfusionMatrixForEachClass(data_loader, model):
 if __name__ == '__main__':
  
     # Define your data transformation
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))])
+    # transform = transforms.Compose(
+    #     [transforms.ToTensor(),
+    #     transforms.Normalize((0.5,), (0.5,))])
+
+    # Define your data transformations
+    transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((512, 640)),
+        transforms.ToTensor(),
+    ])
 
     # Create custom datasets for train, validation, and test
     train_dataset = CustomImageDataset(
         images_dir=f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}',
-        labels_dir=config.TRAIN_LABELS_DIR,
+        labels_dir=f'{config.DATA_DIR}\\{config.TRAIN_LABELS_DIR}',
         transform=transform
     )
 
     val_dataset = CustomImageDataset(
         images_dir=f'{config.DATA_DIR}\\{config.VAL_IMAGES_DIR}',
-        labels_dir=config.VAL_LABELS_DIR,
+        labels_dir=f'{config.DATA_DIR}\\{config.VAL_LABELS_DIR}',
         transform=transform
     )
 
     test_dataset = CustomImageDataset(
         images_dir=f'{config.DATA_DIR}\\{config.TEST_IMAGES_DIR}',
-        labels_dir=config.TEST_LABELS_DIR,
+        labels_dir=f'{config.DATA_DIR}\\{config.TEST_LABELS_DIR}',
         transform=transform
     )
 
 # Define a DataLoader for your train dataset
-# batch_size = 64  # Choose an appropriate batch size
     trainloader = torch.utils.data.DataLoader(
         train_dataset, 
         batch_size=config.DATALOADER_PARAMS['batch_size'], 
@@ -240,42 +327,6 @@ if __name__ == '__main__':
 
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
 
-    # Create a custom dataset using your data directory and the defined transformations
-    train_dataset = CustomImageDataset(
-        images_dir=f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}',
-        labels_dir=config.TRAIN_LABELS_DIR,
-        transform=transform
-    )
-
-    # Create a data loader using the dataset
-    trainloader = torch.utils.data.DataLoader(
-        train_dataset, 
-        batch_size=config.DATALOADER_PARAMS['batch_size'], 
-        shuffle=True, 
-        num_workers=config.DATALOADER_PARAMS['num_workers'])
-    
-    # Define your data transformations
-    data_transform = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((512, 640)),
-        transforms.ToTensor()
-    ])
-
-    #########################################
-    # Get a single batch from the trainloader
-    for batch_idx, (images, labels) in enumerate(trainloader):
-        # Check data type of images and labels in the batch
-        image_data_type = images.dtype
-        label_data_type = labels.dtype
-        
-        # Print data types
-        print(f"Batch {batch_idx + 1}:")
-        print(f"Image data type: {image_data_type}")
-        print(f"Label data type: {label_data_type}")
-        
-        # Break after checking the first batch (you can check more if needed)
-        break
-
     os.makedirs(config.LOGS, exist_ok=True)
     writer = SummaryWriter(config.LOGS)
 
@@ -359,39 +410,68 @@ if __name__ == '__main__':
     epochs = config.EPOCHS
     batch_size = config.DATALOADER_PARAMS['batch_size']
 
+    #########################################
+    # Get a single batch from the trainloader
+    for batch_idx, (images, labels) in enumerate(trainloader):
+        # Check data type of images and labels in the batch
+        image_data_type = images.dtype
+        label_data_type = labels.dtype
+        
+        # Print data types
+        # print(f"Batch {batch_idx + 1}:")
+        # print(f"Image data type: {image_data_type}")
+        # print(f"Label data type: {label_data_type}")
+        
+        # Break after checking the first batch (you can check more if needed)
+        #break
+        #exit()
+
     for epoch in range(epochs):
-
-    # for epoch in range(epochs):  # loop over the dataset multiple times
-    #     print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
-        # for i, data in enumerate(trainloader, 0):
-        #     inputs, labels = data # get the inputs; data is a list of [inputs, labels]
-        #     optimizer.zero_grad() # zero the parameter gradients
-            
-        #     outputs = net(inputs) # forward
-        #     loss = criterion(outputs, labels) # calculate loss
-        #     loss.backward() # backward loss
-        #     optimizer.step() # optimize gradients
-
-        #     running_loss += loss.item() # save loss
-        #     _, preds = torch.max(outputs, 1) # save prediction
-        #     accuracy += torch.sum(preds == labels.data) # save accuracy
-            
-        #     if i % 1000 == 999:    # every 1000 mini-batches...           
-        #         steps = epoch * len(trainloader) + i # calculate steps 
-        #         batch = i*batch_size # calculate batch 
-        #         print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
-                
-        #         # Save accuracy and loss to Tensorboard
-        #         writer.add_scalar('Training loss by steps', running_loss / batch, steps)
-        #         writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
-
-       
-        # writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader), epoch)    
-            # Train your model here
+        # Train your model here
         trainer.train(model=model,
             training_params=train_params,
             train_loader=train_data,
             valid_loader=val_data)
+    # for epoch in range(epochs):  # loop over the dataset multiple times
+        print('Epoch-{0} lr: {1}'.format(epoch + 1, optimizer.param_groups[0]['lr']))
+        for i, data in enumerate(trainloader):
+            inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+            optimizer.zero_grad() # zero the parameter gradients
+            
+            # print(f"inputs.size: {inputs.size()}")
+            # print(f"inputs.shape: {inputs.shape}")
+            #  exit()
+
+            #net = Net()
+            #print(net)
+            
+            outputs = net(inputs) # forward
+
+            # print(f"outputs.shape: {outputs.shape}")
+
+            # exit()
+            # print("Outputs shape:", outputs.shape)
+            # print("labels:", type(labels))
+            #exit()
+            #loss = criterion(outputs, labels) # calculate loss
+            #loss.backward() # backward loss
+            optimizer.step() # optimize gradients
+
+            #running_loss += loss.item() # save loss
+            _, preds = torch.max(outputs, 1) # save prediction
+            accuracy += torch.sum(preds == labels.data) # save accuracy
+            
+            if i % 1000 == 999:    # every 1000 mini-batches...           
+                steps = epoch * len(trainloader) + i # calculate steps 
+                batch = i*batch_size # calculate batch 
+                print("Training loss {:.3} Accuracy {:.3} Steps: {}".format(running_loss / batch, accuracy/batch, steps))
+                
+                # Save accuracy and loss to Tensorboard
+                writer.add_scalar('Training loss by steps', running_loss / batch, steps)
+                writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
+
+       
+#        writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader, model), epoch)    
         
         # Calculate the confusion matrix for each class
         try:

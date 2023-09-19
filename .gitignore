@@ -21,3 +21,4 @@ weights
 data
 aisin_data_v2
 AGI-Dataset
+__pycache__
