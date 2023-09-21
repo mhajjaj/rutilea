@@ -6,13 +6,13 @@ class Config:
 #trainer params
     HOME = os.getcwd()
 
-    CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset2' #specify the path you want to save checkpoints to
-    EXPERIMENT_NAME = 'AGIExperiment2' 
+    #dataset params
+    CHECKPOINT_DIR = os.path.join(HOME, 'checkpoint', 'AGI-Dataset')  # Specify the path you want to save checkpoints to
+    EXPERIMENT_NAME = 'AGIExperiment2'
 
-    ##dataset params
-    DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
-    LOGS = f'{CHECKPOINT_DIR}\AGILogs2'
-
+    # Dataset params
+    DATA_DIR = os.path.join(HOME, 'GearInspection-Dataset3', 'CategoryNG', 'ClassAll')
+    LOGS = os.path.join(CHECKPOINT_DIR, 'AGILogs2')
     # CATEGORY = 'CategoryNG\ClassAll'
 
     TRAIN_IMAGES_DIR = 'train\images' 

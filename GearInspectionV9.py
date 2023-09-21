@@ -1,9 +1,9 @@
 # Developed by m.hajjaj at rutilea
 import os
 import sys
+import subprocess
 
 import requests
-import torch
 from PIL import Image
 from sklearn.metrics import confusion_matrix
 import seaborn as sn
@@ -16,10 +16,12 @@ import torchvision
 import torchvision.transforms as transforms
 
 import torch.nn as nn
+import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
 from tensorboardX import SummaryWriter
+import tensorflow as tf
 
 from super_gradients.training import Trainer, dataloaders, models
 from super_gradients.training.dataloaders.dataloaders import (
@@ -65,7 +67,7 @@ class config:
     'num_workers':2
     }
 
-    EPOCHS = 500
+    EPOCHS = 1
     RUNNING_LOSS = 0.0
     ACCURACY = 0.0
 
@@ -173,14 +175,30 @@ if __name__ == '__main__':
                                                                                                           max_predictions=300,
                                                                                                           nms_threshold=0.7)
                                                   ))
-    
+
+    # Run the nvidia-smi command
+    result = subprocess.run(["nvidia-smi"], stdout=subprocess.PIPE, text=True)
+
+    # Get the output
+    nvidia_smi_output = result.stdout
+    # Print the output
+    print(result.stdout)
+
+    # Create a TensorFlow summary
+    summary = tf.summary.text("NVIDIA SMI Output", tf.constant(nvidia_smi_output))
+
+    # Create a summary writer
+    log_dir = config.LOGS  # Change this to your desired log directory
+    writer = tf.summary.create_file_writer(log_dir)
+
+    # Log the summary to TensorBoard
+    with writer.as_default():
+        tf.summary.write("NVIDIA SMI Output", tf.constant(nvidia_smi_output), step=0)  # Change step as needed
+
+    # Close the summary writer
+    writer.close()
     writer = SummaryWriter(config.LOGS)
     writer.close()
+
     PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
     torch.save(model.state_dict(), PATH)
-    
-    # For predication, please change conf.
-    img_path = 'GearInspection-Dataset/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'
-    best_model.predict(img_path, conf=0.25).show()
-    best_model.predict(img_path, conf=0.50).show()
-    best_model.predict(img_path, conf=0.75).show()

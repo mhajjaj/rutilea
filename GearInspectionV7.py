@@ -1,6 +1,8 @@
 # Developed by m.hajjaj at rutilea
 import os
 import sys
+import requests
+import zipfile
 
 from tensorboardX import SummaryWriter
 
@@ -12,13 +14,9 @@ import seaborn as sn
 import pandas as pd
 
 import torch
-from torchvision import transforms
-
 import torch.nn as nn
-
 import torch.optim as optim
-from dataset import CustomImageDataset
-
+from torchvision import transforms
 
 from super_gradients.training import Trainer, models
 from super_gradients.training.dataloaders.dataloaders import (
@@ -30,14 +28,13 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
     PPYoloEPostPredictionCallback
 )
 
-sys.stdout = sys.__stdout__
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+from oauth2client.service_account import ServiceAccountCredentials
+
+from dataset import CustomImageDataset
 from variables import Config as config
 from variables import Net
-
-sys.stdout = sys.__stdout__
-
-
-    
 sys.stdout = sys.__stdout__
 
 def createConfusionMatrix(loader):
@@ -75,7 +72,7 @@ def save_model_architecture(model, filename):
     with open(filename, 'w') as f:
         f.write(str(model))
 
-def createConfusionMatrixForEachClass(data_loader, model):
+def createConfusionMatrixForEachClass2(data_loader, model):
     # Define a custom function to create a confusion matrix for each class
     # Set the model in evaluation mode
     model.eval()
@@ -182,15 +179,99 @@ def createConfusionMatrixForEachClass(data_loader, model):
     
     return all_confusion_matrices
 
+def createConfusionMatrixForEachClass(loader, model):
+    y_pred = []
+    y_true = []
+
+    for inputs, labels in loader:
+        output = net(inputs) # Feed Network
+
+        output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
+        y_pred.extend(output) # Save Prediction
+        
+        labels = labels.data.cpu().numpy()
+        y_true.extend(labels) # Save Truth
+
+    # constant for classes -- config.CLASSES
+    # classes = config.CLASSES
+    print(f"y_pred: {y_pred}")
+    print(f"y_true: {y_true}")
+    raise ValueError(f"y_pred: {y_pred}")
+    exit()
+
+    true_labels = y_true # [0, 1, 2, 3, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7]  # True class labels
+    predicted_labels = y_pred # [0, 1, 2, 2, 0, 1, 3, 3, 4, 5, 5, 6, 6, 7, 7]  # Predicted class labels
+    class_names = config.CLASSES
+
+    # Initialize dictionaries to store metrics for each class
+    confusion_matrices = {}
+    accuracies = {}
+    precisions = {}
+    recalls = {}
+    f1_scores = {}
+
+    # Loop through each class
+    for class_idx, class_name in enumerate(class_names):
+        # Create binary labels for the current class vs. all other classes
+        binary_true_labels = [1 if label == class_idx else 0 for label in true_labels]
+        binary_predicted_labels = [1 if label == class_idx else 0 for label in predicted_labels]
+
+        # Calculate confusion matrix for the current class
+        conf_matrix = confusion_matrix(binary_true_labels, binary_predicted_labels)
+        
+        # Calculate performance metrics for the current class with zero_division=1.0
+        accuracy = accuracy_score(binary_true_labels, binary_predicted_labels)
+        precision = precision_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        recall = recall_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        f1 = f1_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
+        
+        # Store the metrics in their respective dictionaries with the class name as the key
+        confusion_matrices[class_name] = conf_matrix
+        accuracies[class_name] = accuracy
+        precisions[class_name] = precision
+        recalls[class_name] = recall
+        f1_scores[class_name] = f1
+
+    # Plot confusion matrices for all classes
+    fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+    for i, class_name in enumerate(class_names):
+        row, col = divmod(i, 4)
+        ax = axes[row, col]
+        
+        im = ax.imshow(confusion_matrices[class_name], cmap='Blues', interpolation='nearest')
+        ax.set_title(f"Class {class_name} Confusion Matrix")
+        
+        # Customize tick labels based on your class names
+        tick_marks = np.arange(2)  # Two classes: 0 and 1
+        ax.set_xticks(tick_marks)
+        ax.set_yticks(tick_marks)
+        ax.set_xticklabels([f'Predicted {class_name}', f'Predicted Other'])
+        ax.set_yticklabels([f'True {class_name}', f'True Other'])
+
+        # for i in range(2):
+        #     for j in range(2):
+        #         ax.text(j, i, str(confusion_matrices[class_name][i, j]), ha="center", va="center", color="black")
+
+    plt.tight_layout()
+    plt.show()
+    plt.savefig('output2.png')
+
+    # Print metrics for each class
+    for class_name in class_names:
+        print(f"Metrics for Class {class_name}:")
+        print("Accuracy:", accuracies[class_name])
+        print("Precision:", precisions[class_name])
+        print("Recall:", recalls[class_name])
+        print("F1 Score:", f1_scores[class_name])
+        print()
+
+    return sn.heatmap(conf_matrix, annot=True, fmt=".2f", xticklabels=class_names, yticklabels=class_names).get_figure()
+
 ##################################################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 if __name__ == '__main__':
- 
-    # Define your data transformation
-    # transform = transforms.Compose(
-    #     [transforms.ToTensor(),
-    #     transforms.Normalize((0.5,), (0.5,))])
+    sys.stdout = sys.__stdout__
 
-    # Define your data transformations
+    # Define the data transformations
     transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((512, 640)),
@@ -238,92 +319,6 @@ if __name__ == '__main__':
     net = Net()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-# def createConfusionMatrixForEachClass(loader):
-#     y_pred = []
-#     y_true = []
-
-#     # iterate over test data
-#     for inputs, labels in loader:
-#         output = net(inputs) # Feed Network
-
-#         output = (torch.max(torch.exp(output), 1)[1]).data.cpu().numpy()
-#         y_pred.extend(output) # Save Prediction
-        
-#         labels = labels.data.cpu().numpy()
-#         y_true.extend(labels) # Save Truth
-
-#     # constant for classes -- config.CLASSES
-#     # classes = config.CLASSES
-
-#     # Example dataset
-#     true_labels = y_true # [0, 1, 2, 3, 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7]  # True class labels
-#     predicted_labels = y_pred # [0, 1, 2, 2, 0, 1, 3, 3, 4, 5, 5, 6, 6, 7, 7]  # Predicted class labels
-#     class_names = config.CLASSES
-
-#     # Initialize dictionaries to store metrics for each class
-#     confusion_matrices = {}
-#     accuracies = {}
-#     precisions = {}
-#     recalls = {}
-#     f1_scores = {}
-
-#     # Loop through each class
-#     for class_idx, class_name in enumerate(class_names):
-#         # Create binary labels for the current class vs. all other classes
-#         binary_true_labels = [1 if label == class_idx else 0 for label in true_labels]
-#         binary_predicted_labels = [1 if label == class_idx else 0 for label in predicted_labels]
-
-#         # Calculate confusion matrix for the current class
-#         conf_matrix = confusion_matrix(binary_true_labels, binary_predicted_labels)
-        
-#         # Calculate performance metrics for the current class with zero_division=1.0
-#         accuracy = accuracy_score(binary_true_labels, binary_predicted_labels)
-#         precision = precision_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
-#         recall = recall_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
-#         f1 = f1_score(binary_true_labels, binary_predicted_labels, zero_division=1.0)
-        
-#         # Store the metrics in their respective dictionaries with the class name as the key
-#         confusion_matrices[class_name] = conf_matrix
-#         accuracies[class_name] = accuracy
-#         precisions[class_name] = precision
-#         recalls[class_name] = recall
-#         f1_scores[class_name] = f1
-
-#     # Plot confusion matrices for all classes
-#     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-#     for i, class_name in enumerate(class_names):
-#         row, col = divmod(i, 4)
-#         ax = axes[row, col]
-        
-#         im = ax.imshow(confusion_matrices[class_name], cmap='Blues', interpolation='nearest')
-#         ax.set_title(f"Class {class_name} Confusion Matrix")
-        
-#         # Customize tick labels based on your class names
-#         tick_marks = np.arange(2)  # Two classes: 0 and 1
-#         ax.set_xticks(tick_marks)
-#         ax.set_yticks(tick_marks)
-#         ax.set_xticklabels([f'Predicted {class_name}', f'Predicted Other'])
-#         ax.set_yticklabels([f'True {class_name}', f'True Other'])
-
-#         for i in range(2):
-#             for j in range(2):
-#                 ax.text(j, i, str(confusion_matrices[class_name][i, j]), ha="center", va="center", color="black")
-
-#     plt.tight_layout()
-#     plt.show()
-#     plt.savefig('output2.png')
-
-#     # Print metrics for each class
-#     for class_name in class_names:
-#         print(f"Metrics for Class {class_name}:")
-#         print("Accuracy:", accuracies[class_name])
-#         print("Precision:", precisions[class_name])
-#         print("Recall:", recalls[class_name])
-#         print("F1 Score:", f1_scores[class_name])
-#         print()
-
-#     return sn.heatmap(conf_matrix, annot=True, fmt=".2f", xticklabels=class_names, yticklabels=class_names).get_figure()
 
     trainer = Trainer(experiment_name=config.EXPERIMENT_NAME, ckpt_root_dir=config.CHECKPOINT_DIR)
 
@@ -470,8 +465,7 @@ if __name__ == '__main__':
                 writer.add_scalar('Training loss by steps', running_loss / batch, steps)
                 writer.add_scalar('Training accuracy by steps', accuracy / batch, steps)
 
-       
-#        writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader, model), epoch)    
+        # writer.add_figure("Confusion matrix For Each class", createConfusionMatrixForEachClass(trainloader, model), epoch)
         
         # Calculate the confusion matrix for each class
         try:
@@ -498,6 +492,8 @@ if __name__ == '__main__':
             
             # Add the confusion matrix tensor to TensorBoard
             writer.add_image(f"Confusion Matrix - Class {class_idx}", confusion_matrix_tensor, epoch)
+        
+        # writer.add_figure("Confusion matrix For Each class", createConfusionMatrix(trainloader), epoch)
 
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
