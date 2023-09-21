@@ -12,7 +12,6 @@ def load_image_files(directory_path):
     """Load all PNG image files from the specified directory."""
     return list(Path(directory_path).glob("*.png"))
 
-
 def get_split_point(img):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
 
