@@ -45,17 +45,17 @@ class config:
     #trainer params
     HOME = os.getcwd()
 
-    CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset' #specify the path you want to save checkpoints to
-    EXPERIMENT_NAME = 'AGIExperiment' 
+    CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset3' #specify the path you want to save checkpoints to
+    EXPERIMENT_NAME = 'AGIExperiment3' 
 
     #dataset params
     DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
-    LOGS = f'{CHECKPOINT_DIR}\AGILogs'
+    LOGS = f'{CHECKPOINT_DIR}\AGILogs3'
 
     # CATEGORY = 'CategoryNG\ClassAll'
 
-    TRAIN_IMAGES_DIR = 'train\images' 
-    TRAIN_LABELS_DIR = 'train\labels' 
+    TRAIN_IMAGES_DIR = 'train\image_split' 
+    TRAIN_LABELS_DIR = 'train\labels_adjusted' 
 
     VAL_IMAGES_DIR = 'valid\images'
     VAL_LABELS_DIR = 'valid\labels' 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
-                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model_test.pth'))
+                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
 
     trainer.test(model=best_model,
             test_loader=test_data, 
@@ -207,5 +207,5 @@ if __name__ == '__main__':
     writer.close()
     writer = SummaryWriter(config.LOGS)
 
-    PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
+    PATH = f"{config.HOME}\AGIExperiment\AGIModel3.pt"
     torch.save(model.state_dict(), PATH)

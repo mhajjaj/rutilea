@@ -37,7 +37,7 @@ def image_split_save(img, y_split, x_left, x_right, n, original_img):
     for i in range(len(y_split)-1):
         crop_img = img[y_split[i]:y_split[i + 1], ]
 
-        imageio.imwrite(f"GearInspection-Dataset3\\CategoryNG\\ClassAll\\train_split\\{original_img}_{n:03}.png", crop_img)
+        imageio.imwrite(f"GearInspection-Dataset3\\CategoryNG\\ClassAll\\train\\image_split\\{original_img}_{n:03}.png", crop_img)
         n += 1
 
     return n
@@ -57,6 +57,9 @@ def main(input_directory):
         img = imageio.imread(img_path)
         img = cv2.normalize(img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         y_split, x_left, x_right = get_split_point(img)
+
+        print(y_split)
+        exit()
 
         if not (683 < x_right - x_left < 695):
             print("横幅の異常", x_right - x_left)

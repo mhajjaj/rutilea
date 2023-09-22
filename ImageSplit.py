@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import imageio.v2 as imageio
 import cv2
@@ -5,23 +6,26 @@ from scipy.signal import find_peaks
 from pathlib import Path
 import re
 
-image_dir = "GearInspection-Dataset3\\CategoryNG\\ClassAll\\"
+distance = 300
 
 def load_image_files(directory_path):
     """Load all PNG image files from the specified directory."""
     return list(Path(directory_path).glob("*.png"))
 
-def get_split_point(img):
+def get_annotation_location(image_path):
+    image_name = image_path.stem
+    label_dir = os.path.join(image_path.parent.parent, "labels")  
+    label_path = os.path.join(label_dir, f"{image_name}.txt")
+    return label_path 
+
+def get_split_point(img, distance_val):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
 
     eroded_img = cv2.erode(img, kernel, iterations=1)
     profile_y = np.mean(eroded_img, axis=1)
     # Use indexing to extract the first dimension to make it 1-D
-    profile_y = profile_y[:, 0]
-    y_split, _ = find_peaks(-profile_y, distance=300)
-
-    # print(y_split, _ )
-    # exit()
+    # profile_y = profile_y[:, 0]
+    y_split, _ = find_peaks(-profile_y, distance = distance_val)
 
     edges = cv2.Canny(np.array(img), 50, 80)
     profile_x = np.mean(edges, axis=0)
@@ -30,9 +34,11 @@ def get_split_point(img):
 
     return y_split, x_right, x_left
 
-def parse_and_decode_annotation(annotation_line):
-    # Split the annotation line into individual values
-    values = annotation_line.split()
+def parse_and_decode_annotation(annotation_location):
+    with open(annotation_location, "r") as file:
+        content = file.read()
+
+    values = content.split()
 
     # Extract class ID and convert it to an integer
     class_id = int(values[0])
@@ -45,104 +51,108 @@ def parse_and_decode_annotation(annotation_line):
 
     return class_id, x_center, y_center, width, height
 
-def get_annotation_location(original_annotation, split_coordinates):
-    # Parse the original annotation values
-    class_id, x_center, y_center, width, height = parse_and_decode_annotation(original_annotation)
+def convert_annotation_to_pixels(annotation, image_width, image_height):
+    class_id, x_center_norm, y_center_norm, width_norm, height_norm = annotation # map(float, annotation.split())
 
-    print(class_id, x_center, y_center, width, height)
-    exit()
+    # Convert normalized coordinates to pixel values
+    x_center_px = int(x_center_norm * image_width)
+    y_center_px = int(y_center_norm * image_height)
+    width_px = int(width_norm * image_width)
+    height_px = int(height_norm * image_height)
 
-    # Iterate through split regions and find the one that contains the object's center
-    for i in range(len(split_coordinates) - 1):
-        if split_coordinates[i] <= y_center < split_coordinates[i + 1]:
-            # Calculate the adjusted coordinates within the split region
-            new_y_center = y_center - split_coordinates[i]
-            
-            # Adjust the y-coordinate relative to the split region
-            new_annotation = f"{class_id} {x_center} {new_y_center} {width} {height}"
+    # Calculate bounding box coordinates
+    # This part is not used at this moment
+    x_left_px = x_center_px - (width_px // 2)
+    x_right_px = x_center_px + (width_px // 2)
+    y_top_px = y_center_px - (height_px // 2)
+    y_bottom_px = y_center_px + (height_px // 2)
 
-            # Return the adjusted annotation
-            return new_annotation
+    return class_id, x_center_px, y_center_px, width_px, height_px
 
-    # If the object's center is not within any split region, return None
-    return None
+def return_y_center(annotation, image_height):
+    return int(annotation[2] * image_height)
 
-def image_split_save(img, y_split, x_left, x_right, n, original_img):
+def update_y_center(y_center, image_height):
+    return float(y_center / image_height)
+
+def update_annotation(image_file_name, new_annotation_location, annotation, image_height, y_center):
+    class_id, x_center_norm, y_center_norm, width_norm, height_norm = annotation
+
+    new_y_center_norm = float(y_center / image_height)
+
+    # Get the base name of the image file without the extension
+    image_file_name = os.path.splitext(os.path.basename(image_file_name))[0]
+    
+    # Create the path for the updated annotation file inside the 'labels_adjusted' directory
+    new_annotation_location = os.path.join(new_annotation_location, f"{image_file_name}.txt")
+
+    with open(new_annotation_location, "w") as file:
+        file.write(f"{class_id} {x_center_norm} {new_y_center_norm} {width_norm} {height_norm}")
+
+    return new_y_center_norm
+
+def convert_pixels_to_annotation(class_id, x_left_px, y_top_px, x_right_px, y_bottom_px, image_width, image_height):
+    # Calculate normalized coordinates
+    # This time, the pixels are not used
+    x_center_norm = (x_left_px + x_right_px) / (2 * image_width)
+    y_center_norm = (y_top_px + y_bottom_px) / (2 * image_height)
+    width_norm = (x_right_px - x_left_px) / image_width
+    height_norm = (y_bottom_px - y_top_px) / image_height
+
+    # Format the annotation string
+    annotation = f"{class_id} {x_center_norm} {y_center_norm} {width_norm} {height_norm}"
+    return annotation
+
+def find_annotation(annotation, distance=distance):
+    return annotation // distance
+
+def adjust_annotation(y_center, image_part, distance=distance):
+    return y_center + image_part * (distance + 1)
+
+def image_split_save(img, y_split, x_left, x_right, original_img, image_part, t):
     img = img[:, x_left:x_right + 1]
 
     for i in range(len(y_split)-1):
         crop_img = img[y_split[i]:y_split[i + 1], ]
 
-        # Save the split image
-        imageio.imwrite(f"{image_dir}train\\image_split\\{original_img}_{n:03}.png", crop_img)
-############# find_annotation_on_the_image():
-        # Create and save the corresponding annotation for the split image
-        # save_annotation(original_img, n, x_left, x_right, y_split[i], y_split[i + 1])
-        n += 1
+        if i == image_part:
+            imageio.imwrite(f"{image_dir}train\\image_split\\{original_img}.png", crop_img)
+            # print(f"{image_dir}train\\image_split\\{original_img}.png")
+            t=t+1
 
-    print(n, x_left, x_right, y_split[i], y_split[i + 1])
-    exit()
-
-    return n
-
-def save_annotation(original_img_path, n, x_left, x_right, y_top, y_bottom):
-    # Load the original image
-    # print(f"file_{original_img_path}.png")
-    #exit()
-    original_img = imageio.imread(f"{image_dir}train\\images\\file_{original_img_path}.png")
-
-    # Create a Path object from the original image path
-    original_img_path = Path(original_img_path)
-    
-    # Extract the stem (base name without extension) of the file
-    file_stem = original_img_path.stem
-    
-    # Calculate annotation values based on the split coordinates
-    width = (x_right - x_left) / original_img.shape[1]
-    height = (y_bottom - y_top) / original_img.shape[0]
-    x_center = (x_left + x_right) / (2 * original_img.shape[1])
-    y_center = (y_top + y_bottom) / (2 * original_img.shape[0])
-    
-    # Create and save the annotation file
-    annotation_file_path = f"{image_dir}train\\labels_annotated\\{file_stem}_{n:03}.txt"
-    with open(annotation_file_path, "w") as file:
-        file.write(f"0 {x_center} {y_center} {width} {height}")
+    return t
 
 def image_rename(img_path):
     match = re.search(r'file_(.*?)\.png', str(img_path))
     if match:
         desired_string = match.group(1)
-        # print(desired_string)
         return desired_string
 
-def main(input_directory):
+def main(image_dir):
+    image_dir_path = Path(image_dir)
     n = 0
-    input_directory_path = Path(input_directory)
-    for img_path in load_image_files(input_directory_path):
-        img = imageio.imread(img_path)
-        img = cv2.normalize(img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        y_split, x_left, x_right = get_split_point(img)
+    t = 0
+    for img_path in load_image_files(image_dir_path / "train" / "images"):
+        img_path_str = str(img_path)
+        n = n+1
+        annotation_location = get_annotation_location(img_path)
 
-        if not (683 < x_right - x_left < 695):
-            print(">>> ", x_right - x_left)
-            continue
+        image = imageio.imread(img_path)
+        image = cv2.normalize(image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        y_split, x_left, x_right = get_split_point(image, distance)
 
-        for i in range(len(y_split)-1):
-            if not (308 < y_split[i + 1] - y_split[i] < 320):
-                print(">>> ", y_split[i + 1] - y_split[i])
-                continue
+        image_width = image.shape[1]
+        image_height = image.shape[0]
+        annotation = parse_and_decode_annotation(annotation_location)
+        class_id, x_center_px, y_center_px, width_px, height_px = convert_annotation_to_pixels(annotation, image_width, image_height)
+        y_center = return_y_center(annotation, image_height)
 
-        n = image_split_save(img, y_split, x_left, x_right, n, image_rename(img_path))
+        image_part = find_annotation(y_center, distance)
+        t = image_split_save(image, y_split, x_left, x_right, image_rename(img_path), image_part, t)
 
-main(f"{image_dir}train\\images")
+        new_annotation_location = os.path.join(img_path.parent.parent, "labels_adjusted")
 
-# Example usage:
-original_annotation = "0 0.5 0.7 0.2 0.3"  # Example annotation from XX.txt
-split_coordinates = [0.2, 0.5, 0.8]  # Example split points from get_split_point
-
-adjusted_annotation = get_annotation_location(original_annotation, split_coordinates)
-if adjusted_annotation is not None:
-    print("Adjusted Annotation:", adjusted_annotation)
-else:
-    print("Annotation not within any split region.")
-
+        update_annotation(img_path, new_annotation_location, annotation, image_height, y_center)
+        print(t)
+image_dir = "GearInspection-Dataset3\\CategoryNG\\ClassAll\\"
+main(image_dir)
