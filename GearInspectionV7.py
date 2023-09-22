@@ -278,6 +278,11 @@ if __name__ == '__main__':
         transforms.ToTensor(),
     ])
 
+    transform.debugging.experimental.enable_dump_debug_info(
+        config.LOGS, 
+        tensor_debug_mode="FULL_HEALTH", 
+        circular_buffer_size=-1)
+
     # Create custom datasets for train, validation, and test
     train_dataset = CustomImageDataset(
         images_dir=f'{config.DATA_DIR}\\{config.TRAIN_IMAGES_DIR}',
@@ -497,7 +502,7 @@ if __name__ == '__main__':
 
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
-                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
+                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model_3.pth'))
 
     trainer.test(model=best_model,
             test_loader=test_data, 

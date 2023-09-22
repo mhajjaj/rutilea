@@ -2,6 +2,13 @@ import os
 import torch.nn as nn
 import torch.nn.functional as F
 
+import numpy as np
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 class Config:  
 #trainer params
     HOME = os.getcwd()
@@ -31,7 +38,9 @@ class Config:
 
     DATALOADER_PARAMS={
     'batch_size':8,
-    'num_workers':2
+    'num_workers':2,
+    'worker_init_fn':seed_worker,
+    'generator':torch.Generator().manual_seed(0),
     }
 
     EPOCHS = 1

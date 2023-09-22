@@ -16,6 +16,13 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
     PPYoloEPostPredictionCallback
 )
 
+import numpy as np
+import random
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+
 class config:
     #trainer params
     HOME = os.getcwd()
@@ -24,7 +31,7 @@ class config:
     EXPERIMENT_NAME = 'AGIExperiment' 
 
     ##dataset params
-    DATA_DIR = f'{HOME}\GearInspection-Dataset' 
+    DATA_DIR = f'{HOME}\GearInspection-Dataset1' 
     LOGS = f'{CHECKPOINT_DIR}\AGILogs'
 
     TRAIN_IMAGES_DIR = 'train\images' 
@@ -42,7 +49,9 @@ class config:
 
     DATALOADER_PARAMS={
     'batch_size':8,
-    'num_workers':2
+    'num_workers':2,
+    'worker_init_fn':seed_worker,
+    'generator':torch.Generator().manual_seed(0),
     }
 
     # model params
@@ -136,7 +145,7 @@ if __name__ == '__main__':
 
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
-                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
+                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model2.pth'))
 
     trainer.test(model=best_model,
             test_loader=test_data, 
@@ -155,7 +164,7 @@ if __name__ == '__main__':
     torch.save(model.state_dict(), PATH)
     
     # For predication, please change conf.
-    img_path = 'GearInspection-Dataset/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'
+    img_path = 'GearInspection-Dataset1/predict/year=2023-month=06-day=20-03_54_04-NG-2_0.png'
     best_model.predict(img_path, conf=0.25).show()
     best_model.predict(img_path, conf=0.50).show()
     best_model.predict(img_path, conf=0.75).show()

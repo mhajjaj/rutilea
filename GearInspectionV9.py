@@ -10,6 +10,7 @@ import seaborn as sn
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 import torch
 import torchvision
@@ -35,6 +36,11 @@ from super_gradients.training.models.detection_models.pp_yolo_e import (
 
 sys.stdout = sys.__stdout__
 
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 class config:
     #trainer params
     HOME = os.getcwd()
@@ -42,7 +48,7 @@ class config:
     CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset' #specify the path you want to save checkpoints to
     EXPERIMENT_NAME = 'AGIExperiment' 
 
-    ##dataset params
+    #dataset params
     DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
     LOGS = f'{CHECKPOINT_DIR}\AGILogs'
 
@@ -64,10 +70,12 @@ class config:
 
     DATALOADER_PARAMS={
     'batch_size':8,
-    'num_workers':2
+    'num_workers':2,
+    'worker_init_fn':seed_worker,
+    'generator':torch.Generator().manual_seed(0),
     }
 
-    EPOCHS = 1
+    EPOCHS = 10
     RUNNING_LOSS = 0.0
     ACCURACY = 0.0
 
@@ -162,7 +170,7 @@ if __name__ == '__main__':
 
     best_model = models.get(config.MODEL_NAME,
                         num_classes=config.NUM_CLASSES,
-                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model.pth'))
+                        checkpoint_path=os.path.join(config.CHECKPOINT_DIR, config.EXPERIMENT_NAME, 'average_model_test.pth'))
 
     trainer.test(model=best_model,
             test_loader=test_data, 
@@ -192,13 +200,12 @@ if __name__ == '__main__':
     writer = tf.summary.create_file_writer(log_dir)
 
     # Log the summary to TensorBoard
-    with writer.as_default():
-        tf.summary.write("NVIDIA SMI Output", tf.constant(nvidia_smi_output), step=0)  # Change step as needed
+    # with writer.as_default():
+    #     tf.summary.write("NVIDIA SMI Output", tf.constant(nvidia_smi_output), step=0)  # Change step as needed
 
     # Close the summary writer
     writer.close()
     writer = SummaryWriter(config.LOGS)
-    writer.close()
 
     PATH = f"{config.HOME}\AGIExperiment\AGIModel.pt"
     torch.save(model.state_dict(), PATH)
