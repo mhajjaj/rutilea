@@ -90,12 +90,10 @@ with open("test_annotations.json", "w") as json_file:
 
 print("Total number of Annotations created for Test/Eval are", count)
 
+# Initialize PaddleOCR
 custom_ocr = PaddleOCR(
     use_angle_cls=True,
-    # rec_model_dir='..\\PaddleOCR\\inference\\en_PP-OCRv3_rec',
-    # det_model_dir='..\\PaddleOCR\\output\\det_db_inference',
-    # rec_char_dict_path='..\\PaddleOCR\\ppocr\\utils\\dict90.txt',
-    lang='en',  
+    lang='en',
     use_gpu=True,
     show_log=False
 )
@@ -122,4 +120,5 @@ scores = [detection[1][1] for line in results for detection in line]
 
 im_show = draw_ocr(image, boxes, txts, scores, font_path='simfang.ttf')
 im_show = Image.fromarray(im_show)
+im_show.show()
 im_show.save('result_ocr.jpg')
