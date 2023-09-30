@@ -40,8 +40,8 @@ class config:
     CHECKPOINT_DIR = f'{HOME}\checkpoint\AGI-Dataset' #specify the path you want to save checkpoints to
     EXPERIMENT_NAME = 'AGIExperiment' 
 
-    ##dataset params
-    DATA_DIR = f'{HOME}\GearInspection-Dataset3\CategoryNG\ClassAll' 
+    ##dataset params 
+    DATA_DIR = f'{HOME}\GearInspection-Dataset-Structure\CategoryNG\ClassAll' 
     LOGS = f'{CHECKPOINT_DIR}\AGILogs'
 
     # CATEGORY = 'CategoryNG\ClassAll'

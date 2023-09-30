@@ -115,31 +115,31 @@ train_params = {
     "metric_to_watch": 'mAP@0.50'
 }
 
-#from super_gradients.training import Trainer
+from super_gradients.training import Trainer
 
 #CHECKPOINT_DIR = 'checkpoints/my_first_yolonas_run/average_model.pthcheckpoints/my_first_yolonas_run/average_model.pth' # "checkpoints/my_first_yolonas_run/average_model.pth"
-#trainer = Trainer(experiment_name='Coins', ckpt_root_dir="checkpoints/my_first_yolonas_run/average_model.pth")
+trainer = Trainer(experiment_name='Coins', ckpt_root_dir="checkpoints/my_first_yolonas_run/average_model.pth")
 
-#trainer.train(model=model,
-#              training_params=train_params,
-#              train_loader=train_data,
-#              valid_loader=val_data)
+trainer.train(model=model,
+              training_params=train_params,
+              train_loader=train_data,
+              valid_loader=val_data)
 
-#best_model = models.get('yolo_nas_l',
-#                        num_classes=len(dataset_params['classes']),
-#                        checkpoint_path="checkpoints/my_first_yolonas_run/average_model.pth")
+best_model = models.get('yolo_nas_l',
+                        num_classes=len(dataset_params['classes']),
+                        checkpoint_path="checkpoints/my_first_yolonas_run/average_model.pth")
 
-#trainer.test(model=best_model,
-#            test_loader=test_data,
-#            test_metrics_list=DetectionMetrics_050(score_thres=0.1,
-#                                                   top_k_predictions=300,
-#                                                   num_cls=len(dataset_params['classes']),
-#                                                   normalize_targets=True,
-#                                                   post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
-#                                                                                                          nms_top_k=1000,
-#                                                                                                          max_predictions=300,
-#                                                                                                          nms_threshold=0.7)
-#                                                  ))
+trainer.test(model=best_model,
+            test_loader=test_data,
+            test_metrics_list=DetectionMetrics_050(score_thres=0.1,
+                                                   top_k_predictions=300,
+                                                   num_cls=len(dataset_params['classes']),
+                                                   normalize_targets=True,
+                                                   post_prediction_callback=PPYoloEPostPredictionCallback(score_threshold=0.01,
+                                                                                                          nms_top_k=1000,
+                                                                                                          max_predictions=300,
+                                                                                                          nms_threshold=0.7)
+                                                  ))
 
-#img_url = 'https://www.mynumi.net/media/catalog/product/cache/2/image/9df78eab33525d08d6e5fb8d27136e95/s/e/serietta_usa_2_1/www.mynumi.net-USASE5AD160-31.jpg'
-#best_model.predict(img_url).show()
+img_url = 'https://www.mynumi.net/media/catalog/product/cache/2/image/9df78eab33525d08d6e5fb8d27136e95/s/e/serietta_usa_2_1/www.mynumi.net-USASE5AD160-31.jpg'
+best_model.predict(img_url).show()

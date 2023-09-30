@@ -23,4 +23,6 @@ data
 aisin_data_v2
 AGI-Dataset
 PredictionResults
+labelImg
 __pycache__
+AISIN_Gear_Inspection
